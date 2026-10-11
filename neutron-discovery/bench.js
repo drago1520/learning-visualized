@@ -115,7 +115,7 @@ var targets={
   lead:function(){var g=new THREE.Group();var stamp=canvasTex(256,64,function(c,w,h){c.fillStyle='rgba(0,0,0,0)';c.clearRect(0,0,w,h);c.fillStyle='rgba(20,22,26,.8)';c.font='500 36px serif';c.textAlign='center';c.fillText('Pb  ·  CAVENDISH',w/2,46)});
     for(var i=0;i<4;i++){var brick=rbox(0.7,0.46,1.9,0.03,lead);brick.position.set((i%2?0.03:-0.03),-0.72+i*0.48,0);brick.rotation.y=(i%2?0.02:-0.02);g.add(brick);
       var s=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.22),new THREE.MeshBasicMaterial({map:stamp,transparent:true}));s.position.set(brick.position.x+0.36,brick.position.y,0);s.rotation.y=Math.PI/2;g.add(s)}return g},
-  wax:function(){var g=new THREE.Group();g.add(rbox(0.5,1.5,1.5,0.04,new THREE.MeshPhysicalMaterial({color:0xf4e8c6,roughness:0.6,transmission:0.35,transparent:true,opacity:0.97,sheen:0.4})));
+  wax:function(){var g=new THREE.Group();g.add(rbox(0.5,1.5,1.5,0.04,new THREE.MeshPhysicalMaterial({color:0xf4e8c6,roughness:0.6,transmission:0.35,transparent:true,opacity:0.97})));
     var band=mesh(new THREE.BoxGeometry(0.54,0.5,1.54),new THREE.MeshStandardMaterial({map:canvasTex(256,128,function(c,w,h){c.fillStyle='#d8c9a3';c.fillRect(0,0,w,h);c.fillStyle='#3a2a14';c.font='500 30px serif';c.textAlign='center';c.fillText('PARAFFIN WAX',w/2,56);c.font='22px serif';c.fillText('C₂₅H₅₂  ·  Price\'s',w/2,92)}),roughness:0.95}));band.position.y=0.1;g.add(band);
     var tray=rbox(0.78,0.08,1.78,0.01,brass);tray.position.y=-0.78;g.add(tray);[-0.8,0.8].forEach(function(z){var lip=mesh(new THREE.BoxGeometry(0.78,0.16,0.04),brass);lip.position.set(0,-0.7,z);g.add(lip)});return g},
   n:function(){var g=new THREE.Group();g.add(mesh(new THREE.CylinderGeometry(0.72,0.72,1.7,64,1,true),glass));
