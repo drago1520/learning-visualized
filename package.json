@@ -1,0 +1,12 @@
+{
+  "name": "learning-visualized",
+  "private": true,
+  "scripts": {
+    "dev": "bun ./index.html ./*/*.html",
+    "build": "bun build ./index.html ./*/*.html --outdir dist"
+  },
+  "dependencies": {
+    "gsap": "3.12.5",
+    "three": "0.128.0"
+  }
+}
