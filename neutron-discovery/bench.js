@@ -39,11 +39,11 @@ var deskLamp=new THREE.SpotLight(0xffd9a8,1.6,20,0.6,0.5,1);deskLamp.position.se
 (function(){var pm=new THREE.PMREMGenerator(renderer);var env=new THREE.Scene();
   env.add(new THREE.Mesh(new THREE.BoxGeometry(20,20,20),new THREE.MeshBasicMaterial({color:0x1a1c24,side:THREE.BackSide})));
   function panel(w,h,x,y,z,c,i){var m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(i),side:THREE.DoubleSide}));m.position.set(x,y,z);m.lookAt(0,0,0);env.add(m)}
-  panel(6,3,0,9,0,0xfff0d8,6);panel(3,6,-9,2,-4,0x8090ff,2.5);panel(4,2,6,4,8,0xffd9a8,3.5);panel(10,1,0,-2,9,0x303848,1.5);
+  panel(6,3,0,9,0,0xfff0d8,3.5);panel(3,6,-9,2,-4,0x8090ff,2);panel(4,2,6,4,8,0xffd9a8,2.5);panel(10,1,0,-2,9,0x303848,1.5);
   scene.environment=pm.fromScene(env,0.04).texture;pm.dispose()})();
 var wood=new THREE.MeshStandardMaterial({map:woodTex,bumpMap:woodTex,bumpScale:0.015,roughness:0.75});
 var lead=new THREE.MeshStandardMaterial({map:leadTex,bumpMap:leadTex,bumpScale:0.01,color:0xc9ccd4,roughness:0.55,metalness:0.75});
-var brass=new THREE.MeshStandardMaterial({map:brassTex,bumpMap:brassTex,bumpScale:0.004,roughness:0.3,metalness:0.92});
+var brass=new THREE.MeshStandardMaterial({map:brassTex,bumpMap:brassTex,bumpScale:0.004,roughness:0.38,metalness:0.92});
 var brassDark=new THREE.MeshStandardMaterial({map:brassTex,bumpMap:brassTex,bumpScale:0.004,color:0x8a6a2a,roughness:0.42,metalness:0.9});
 var steel=new THREE.MeshStandardMaterial({color:0x9aa0a8,roughness:0.28,metalness:0.95});
 var copper=new THREE.MeshStandardMaterial({color:0xb86b3c,roughness:0.35,metalness:0.95});
@@ -118,19 +118,7 @@ var targets={
   wax:function(){var g=new THREE.Group();g.add(rbox(0.5,1.5,1.5,0.04,new THREE.MeshPhysicalMaterial({color:0xf4e8c6,roughness:0.6,transmission:0.35,transparent:true,opacity:0.97})));
     var band=mesh(new THREE.BoxGeometry(0.54,0.5,1.54),new THREE.MeshStandardMaterial({map:canvasTex(256,128,function(c,w,h){c.fillStyle='#d8c9a3';c.fillRect(0,0,w,h);c.fillStyle='#3a2a14';c.font='500 30px serif';c.textAlign='center';c.fillText('PARAFFIN WAX',w/2,56);c.font='22px serif';c.fillText('C₂₅H₅₂  ·  Price\'s',w/2,92)}),roughness:0.95}));band.position.y=0.1;g.add(band);
     var tray=rbox(0.78,0.08,1.78,0.01,brass);tray.position.y=-0.78;g.add(tray);[-0.8,0.8].forEach(function(z){var lip=mesh(new THREE.BoxGeometry(0.78,0.16,0.04),brass);lip.position.set(0,-0.7,z);g.add(lip)});return g},
-  n:function(){var g=new THREE.Group();g.add(mesh(new THREE.CylinderGeometry(0.72,0.72,1.7,64,1,true),glass));
-    var c1=knurl(0.8,0.16,brass,36);c1.position.y=0.9;g.add(c1);var c2=knurl(0.8,0.16,brass,36);c2.position.y=-0.9;g.add(c2);
-    boltRing(c1,0.62,8,0.09,steel,0.035);boltRing(c2,0.62,8,-0.09,steel,0.035);
-    [0,120,240].forEach(function(deg){var a=deg*Math.PI/180;var rod=mesh(new THREE.CylinderGeometry(0.025,0.025,1.9,10),steel);rod.position.set(Math.cos(a)*0.76,0,Math.sin(a)*0.76);g.add(rod)});
-    var side=mesh(new THREE.CylinderGeometry(0.07,0.07,0.8,16),glass);side.position.set(0,0.4,0.9);side.rotation.x=Math.PI/2;g.add(side);
-    var cock=knurl(0.16,0.08,brass,16);cock.position.set(0,0.4,1.3);cock.rotation.x=Math.PI/2;g.add(cock);
-    var valve=mesh(new THREE.CylinderGeometry(0.06,0.06,0.5,16),brass);valve.position.y=1.2;g.add(valve);
-    var wheel=mesh(new THREE.TorusGeometry(0.18,0.03,10,32),brass);wheel.position.y=1.45;wheel.rotation.x=Math.PI/2;g.add(wheel);
-    /* pressure gauge on the top cap */
-    var gg=new THREE.Group();gg.position.set(0.45,1.25,0);g.add(gg);var gstem=mesh(new THREE.CylinderGeometry(0.03,0.03,0.3,10),brass);gstem.position.y=-0.15;gg.add(gstem);
-    var gcase=mesh(new THREE.CylinderGeometry(0.22,0.22,0.08,32),brass);gcase.rotation.x=Math.PI/2;gg.add(gcase);var gface=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.01,32),new THREE.MeshStandardMaterial({map:dialTex,roughness:0.5}));gface.rotation.x=Math.PI/2;gface.position.z=0.045;gg.add(gface);
-    var gn=new THREE.Mesh(new THREE.BoxGeometry(0.012,0.15,0.006),new THREE.MeshStandardMaterial({color:0x111}));gn.position.set(0.04,0.03,0.055);gn.rotation.z=-0.6;gg.add(gn);
-    return g}
+  n:function(){return new THREE.Group()}  /* nitrogen goes INTO the ionisation chamber, so the target slot is empty */
 };
 function setTargetMesh(k){while(targetGroup.children.length)targetGroup.remove(targetGroup.children[0]);var m=targets[k]();m.traverse(function(o){if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});m.position.set(-0.4,0.55,0);m.scale.setScalar(0.01);targetGroup.add(m);if(window.gsap)gsap.to(m.scale,{x:1,y:1,z:1,duration:0.6,ease:'back.out(1.6)'});else m.scale.setScalar(1)}
 
@@ -143,7 +131,7 @@ var foils=[];for(var i=0;i<6;i++){var f=mesh(new THREE.BoxGeometry(0.012,1.3,1.1
 var foilsIn=2;
 window.setFoils=function(n){foilsIn=Math.max(0,Math.min(6,n));foils.forEach(function(f,i){f.visible=i<foilsIn});document.getElementById('foilN').textContent=foilsIn;
   var cm=foilsIn*8,rate=Math.max(0,1-cm/40);document.getElementById('foilCm').textContent=cm;document.getElementById('foilRate').textContent=Math.round(rate*100)+'%';
-  modes.wax.frac=rate;modes.n.frac=foilsIn?0:1;restartTimer()};
+  modes.wax.frac=rate;restartTimer()};
 window.foilCount=function(){return foilsIn};
 
 /* ---------- 3c. Wilson cloud chamber, behind the rail: glass drum, piston, camera ---------- */
@@ -185,10 +173,19 @@ var wire=add(mesh(new THREE.CylinderGeometry(0.025,0.025,2.5,12),wireMat),3.65,0
 [2.55,4.75].forEach(function(x){var s=mesh(new THREE.CylinderGeometry(0.06,0.09,0.25,16),bakelite);s.rotation.z=Math.PI/2;add(s,x,0.55,0)});
 var gasMat=new THREE.MeshBasicMaterial({color:0x8fc8ff,transparent:true,opacity:0,depthWrite:false});
 var gas=add(new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,2.2,48),gasMat),3.6,0.55,0);gas.rotation.z=Math.PI/2;
+/* nitrogen fill for the chamber: a valve on top, a hose to a small N₂ bottle behind the bench rail; visible only in nitrogen mode */
+var n2=new THREE.Group();scene.add(n2);n2.visible=false;
+var n2Valve=mesh(new THREE.CylinderGeometry(0.06,0.06,0.5,16),brass);n2Valve.position.set(3.6,1.55,0);n2.add(n2Valve);
+var n2Wheel=mesh(new THREE.TorusGeometry(0.16,0.03,10,32),brass);n2Wheel.position.set(3.6,1.8,0);n2Wheel.rotation.x=Math.PI/2;n2.add(n2Wheel);
+var n2Bottle=mesh(new THREE.CylinderGeometry(0.22,0.22,1.0,32),new THREE.MeshStandardMaterial({color:0x3a3f47,roughness:0.5,metalness:0.6}));n2Bottle.position.set(3.6,0.0,-1.7);n2.add(n2Bottle);
+var n2Dome=mesh(new THREE.SphereGeometry(0.22,32,16,0,Math.PI*2,0,Math.PI/2),n2Bottle.material);n2Dome.position.set(3.6,0.5,-1.7);n2.add(n2Dome);
+var n2Tap=mesh(new THREE.CylinderGeometry(0.05,0.05,0.25,12),brass);n2Tap.position.set(3.6,0.82,-1.7);n2.add(n2Tap);
+var n2Plate=plate('N₂',0.26,0.2,70);n2Plate.position.set(3.6,0.05,-1.47);n2.add(n2Plate);
+n2.add(cable([[3.6,0.95,-1.7],[3.62,1.5,-1.3],[3.6,1.9,-0.6],[3.6,1.78,0]],0.035,rubber));
 var cutaway=false;
 window.setCutaway=function(on){cutaway=on;document.getElementById('b-cut').classList.toggle('on',on);
   restartTimer();
-  var o=on?0.14:1,g=on?0.08:0;
+  var o=on?0.14:1,g=on?(mode==="n"?0.16:0.08):0;
   if(window.gsap){gsap.to(chamberMat,{opacity:o,duration:0.8});gsap.to(gasMat,{opacity:g,duration:0.8})}else{chamberMat.opacity=o;gasMat.opacity=g}
   chamberMat.depthWrite=!on;wireMat.emissiveIntensity=on?1.6:0.5};
 add(mesh(new THREE.CylinderGeometry(0.46,0.46,0.02,48),new THREE.MeshStandardMaterial({color:0xe2d9c0,roughness:0.95,side:THREE.DoubleSide})),2.4,0.55,0).rotation.z=Math.PI/2;
@@ -285,7 +282,7 @@ mg.add(cable([[-0.2,-0.32,0.25],[-0.3,0.0,0.1],[-0.35,0.6,-0.1],[-0.3,0.95,-0.3]
 mg.add(cable([[0.2,-0.32,0.25],[0.3,-0.3,0.0],[0.32,-0.3,-0.3],[0,-0.28,-0.4]],0.025,copper));
 var mgSrc=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),new THREE.MeshBasicMaterial({color:new THREE.Color(3,2,0.6)}));mgSrc.position.set(-1.3,0.4,0);mg.add(mgSrc);
 var mgSrcLead=mesh(new THREE.BoxGeometry(0.4,0.5,0.5),lead);mgSrcLead.position.set(-1.5,0.4,0);mg.add(mgSrcLead);
-var mgScreen=mesh(new THREE.BoxGeometry(0.03,0.7,1.6),new THREE.MeshStandardMaterial({color:0xd8ecd0,roughness:0.9,side:THREE.DoubleSide}));mgScreen.position.set(1.3,0.4,-0.3);mg.add(mgScreen);
+var mgScreen=mesh(new THREE.BoxGeometry(0.03,0.7,1.6),new THREE.MeshStandardMaterial({color:0xb9c9a9,roughness:1,envMapIntensity:0.1,side:THREE.DoubleSide}));mgScreen.position.set(1.3,0.4,-0.3);mg.add(mgScreen);
 var bendPath=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-1.2,0.4,0),new THREE.Vector3(0.3,0.4,0),new THREE.Vector3(1.28,0.4,-0.75));
 var straightPath=new THREE.LineCurve3(new THREE.Vector3(-1.2,0.4,0),new THREE.Vector3(1.28,0.4,0));
 var mgA=[],mgN=[];
@@ -304,12 +301,12 @@ var ruler=mesh(new THREE.BoxGeometry(2.6,0.06,0.5),new THREE.MeshStandardMateria
 var rgLead=mesh(new THREE.BoxGeometry(0.4,0.5,0.5),lead);rgLead.position.set(-1.0,-0.17,0);rg.add(rgLead);
 var rgSrc=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),new THREE.MeshBasicMaterial({color:new THREE.Color(3,2,0.6)}));rgSrc.position.set(-0.78,-0.17,0);rg.add(rgSrc);
 var screenG=new THREE.Group();rg.add(screenG);
-var zns=mesh(new THREE.BoxGeometry(0.03,0.6,0.6),new THREE.MeshStandardMaterial({color:0xe6f2d8,roughness:0.95,emissive:0x1b2a12,emissiveIntensity:0.4,side:THREE.DoubleSide}));zns.position.y=0.0;screenG.add(zns);
+var zns=mesh(new THREE.BoxGeometry(0.03,0.6,0.6),new THREE.MeshStandardMaterial({color:0xb9c9a9,roughness:1,emissive:0x1b2a12,emissiveIntensity:0.25,envMapIntensity:0.1,side:THREE.DoubleSide}));zns.position.y=0.0;screenG.add(zns);
 var znsFoot=mesh(new THREE.BoxGeometry(0.2,0.08,0.3),brassDark);znsFoot.position.y=-0.38;screenG.add(znsFoot);
 var rangeX=-0.78+3.8*0.42;
 var rgA=[],rgF=[];
 for(var i=0;i<16;i++){var a=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,8),new THREE.MeshBasicMaterial({color:new THREE.Color(3,2,0.6),transparent:true}));a.visible=false;rg.add(a);rgA.push({m:a,t:2,z:0,y:0})}
-for(var i=0;i<12;i++){var f=new THREE.Mesh(new THREE.PlaneGeometry(0.08,0.08),new THREE.MeshBasicMaterial({color:new THREE.Color(3,4,2.5),transparent:true,side:THREE.DoubleSide}));f.rotation.y=Math.PI/2;f.visible=false;screenG.add(f);rgF.push({m:f,life:0})}
+for(var i=0;i<12;i++){var f=new THREE.Mesh(new THREE.PlaneGeometry(0.08,0.08),new THREE.MeshBasicMaterial({color:new THREE.Color(1.6,2.2,1.3),transparent:true,side:THREE.DoubleSide}));f.rotation.y=Math.PI/2;f.visible=false;screenG.add(f);rgF.push({m:f,life:0})}
 var rgT=0;
 function rangeDemo(){if(!active('rg')){rgA.forEach(function(p){p.t=2;p.m.visible=false});rgF.forEach(function(f){f.life=0;f.m.visible=false});return}rgT+=0.0035;var sx=0.55+0.95*(0.5+0.5*Math.sin(rgT));screenG.position.set(sx,-0.17,0);var inRange=sx<=rangeX;
   if(frame%4===0){for(var i=0;i<rgA.length;i++)if(rgA[i].t>=1){var p=rgA[i];p.t=0;p.y=(Math.random()-0.5)*0.3;p.z=(Math.random()-0.5)*0.3;p.m.visible=true;break}}
@@ -400,7 +397,7 @@ var labels=[
 labels.forEach(function(l){var d=document.createElement('div');d.className='tag'+(l.below?' below':'');d.innerHTML=l.h+'<small>'+l.s+'</small>';tagsEl.appendChild(d);l.el=d;labels[l.id]=l});
 var v=new THREE.Vector3();
 var labelGroup={src:'beam',be:'beam',tg:'beam',abs:'beam',ch:'beam',amp:'beam',win:'beam',wire:'beam',wall:'beam',cloud:'cloud',em:'em',mag:'mag',rg:'rg',osc:'osc',gt:'gt'};
-function placeLabels(){var w=stage.clientWidth,h=stage.clientHeight;labels.forEach(function(l){v.copy(l.pos).project(camera);var vis=v.z<1&&(!l.inner||cutaway)&&active(labelGroup[l.id]);l.el.style.display=vis?'':'none';l.el.style.left=((v.x+1)/2*w)+'px';l.el.style.top=((1-v.y)/2*h)+'px'})}
+function placeLabels(){var w=stage.clientWidth,h=stage.clientHeight;labels.forEach(function(l){v.copy(l.pos).project(camera);var vis=v.z<1&&(!l.inner||cutaway)&&!l.hide&&active(labelGroup[l.id]);l.el.style.display=vis?'':'none';l.el.style.left=((v.x+1)/2*w)+'px';l.el.style.top=((1-v.y)/2*h)+'px'})}
 
 /* ionisation inside the chamber: a nucleus leaves a trail, electrons fall to the wire, ions drift to the wall, a pulse runs down the cable */
 function dotPool(n,rgb,size){var a=[];for(var i=0;i<n;i++){var m=new THREE.Mesh(new THREE.SphereGeometry(size,8,8),new THREE.MeshBasicMaterial({color:new THREE.Color(rgb[0],rgb[1],rgb[2]),transparent:true}));m.visible=false;scene.add(m);a.push({m:m,live:false})}return a}
@@ -421,7 +418,7 @@ function setHot(id){labels.forEach(function(l){l.el.classList.toggle('hot',l.id=
 var modes={
   lead:{rec:false,pass:true,rate:900,frac:1,tag:'Lead wall',tagS:'2 cm of lead · the radiation still gets through'},
   wax:{rec:true,pass:false,rate:200,frac:0.6,speed:0.055,size:1,every:10,tag:'Paraffin wax',tagS:'full of hydrogen · protons get knocked out'},
-  n:{rec:true,pass:false,rate:520,frac:0,speed:0.018,size:1.6,every:22,tag:'Nitrogen gas',tagS:'heavy nuclei · they recoil slowly'}
+  n:{rec:true,pass:true,rate:520,frac:1,speed:0.018,size:1.6,every:22,x0:2.7,x1:4.3,tag:'Nitrogen gas',tagS:'heavy nuclei · they recoil slowly'}
 };
 var mode='lead';
 function restartTimer(){if(timer)clearInterval(timer);var m=modes[mode];timer=(cutaway||!active('beam'))?null:setInterval(tick,Math.min(6000,m.rate/Math.max(m.frac,0.04)))}
@@ -438,7 +435,8 @@ window.setMode=function(k){
   mode=k;var m=modes[k];
   ['lead','wax','n'].forEach(function(x){document.getElementById('b-'+x).classList.toggle('on',x===k)});
   setTargetMesh(k);
-  labels[2].el.innerHTML=m.tag+'<small>'+m.tagS+'</small>';
+  labels[2].el.innerHTML=m.tag+'<small>'+m.tagS+'</small>';labels.tg.hide=(k==='n');n2.visible=(k==='n');
+  labels.ch.el.innerHTML=k==='n'?'Ionisation chamber<small>now filled with nitrogen · nitrogen nuclei recoil inside it</small>':'Ionisation chamber<small>brass can of gas · charged particles leave a trail</small>';
   restartTimer();
 };
 setTargetMesh('lead');restartTimer();
@@ -473,7 +471,7 @@ if(!controls){var drag=null;el.addEventListener('pointerdown',function(e){drag={
 var composer=null,bloom=null;
 if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.RenderPass){
   composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));
-  bloom=new THREE.UnrealBloomPass(new THREE.Vector2(1,1),0.9,0.55,0.82);composer.addPass(bloom);
+  bloom=new THREE.UnrealBloomPass(new THREE.Vector2(1,1),0.7,0.55,0.9);composer.addPass(bloom);
 }
 
 /* ---------- story ---------- */
@@ -487,7 +485,7 @@ var steps=[
  {hot:'gt',mode:'lead',cam:[0.2,1.05,4.5,-4.0,0.2,2.2],title:'Counting alphas one at a time: the Geiger tube',
   text:'Before 1908 radiation could only be measured as a total, like the brightness of a lamp. Rutherford and Geiger wanted to <b>count the single particles</b>. The tube in front of you is a can of gas with a thin wire down the middle and a high voltage between wire and wall. One alpha comes in through the small window and knocks a few electrons off the gas. The voltage whips those electrons into more gas atoms, each of those frees more, and in a flash the tiny trail becomes a <b>spark</b> along the wire. One particle in, one spark out. Every spark gives a small jolt to the register on the right, which adds one. That is the <b>count</b>. The <b>charge</b> comes from a second, separate run: take the tube away, put a small metal cup in the same spot, wire the cup to the electroscope, and let the beam run for the same time. The alphas land in the cup and their charge piles up, so the leaves open by an amount that tells you the total charge. Total charge divided by the number of clicks is the charge of one alpha.<div class="math"><em>count</em>    register reads N clicks in one minute\n<em>charge</em>   cup catches Q coulombs in one minute\n\n<em>one alpha</em>   Q / N = 3.2 × 10⁻¹⁹ C = <b>2 e</b>\n(e is the charge of one electron, 1.6 × 10⁻¹⁹ C)\n\n<em>why a spark from one atom-sized particle</em>\n  one alpha  →  a few thousand electrons\n  high voltage  →  avalanche  →  ×1000 or more\n  big enough to click a register</div>'},
 
- {hot:'rg',mode:'lead',cam:[0.05,1.05,5.4,1.7,0.1,-2.6],title:'How alpha energy was measured: range in air',
+ {hot:'rg',mode:'lead',cam:[-0.5,0.9,6.5,1.4,0.0,-2.6],title:'How alpha energy was measured: range in air',
   text:'An alpha in air is like a bullet in water. It ploughs ahead, losing energy to every molecule it passes, and then stops dead at a sharp, repeatable distance called its <b>range</b>. Watch the screen in front of you slide along the ruler: while it is closer than <b>3.8 cm</b> every alpha makes a flash, and once it passes that mark it goes dark. Every alpha from Po-210 has the same range, so they all have the same energy.<div class="math"><em>Geiger\'s rule (1910)</em>   range  R ∝ v³\nCalibrated once against a magnet-measured alpha, so from\nthen on a range read off a ruler gives a speed:\n  R = 3.8 cm  →  v ≈ 1.6 × 10⁷ m/s\n  E = ½ m v² = ½ × 6.6e-27 × (1.6e7)² ≈ 8.5e-13 J\n  1 eV = 1.6e-19 J  →  <b>E ≈ 5.3 MeV</b></div>'},
  {hot:'be',mode:'lead',cam:[-0.7,1.1,7,-3.0,0.5,0],focus:['beam'],ui:['legend'],title:'Bookkeeping at the beryllium',
   text:'When an alpha hits a <b>beryllium-9</b> nucleus, the two merge and something flies out. Nuclear reactions keep two tallies, charge and mass number, and the leftover nucleus was known to be carbon-12. Doing the sums tells you what the mystery must look like before you ever detect it.<div class="math"><em>charge</em>   2 (He) + 4 (Be) = 6 (C) + <b>0</b>   → it is neutral\n<em>mass</em>     4 (He) + 9 (Be) = 12 (C) + <b>1</b>  → one unit of mass\n\n⁴He + ⁹Be → ¹²C + ¹n  <em>(the reaction, written today)</em></div>'},
@@ -499,9 +497,9 @@ var steps=[
   text:'Nobody could watch a proton fly 40 cm through air on a bench, so they used <b>aluminium foils</b>. Each foil of known thickness stops a particle exactly as much as a known length of air does, its <b>air-equivalent</b>. Slide foils into the beam one at a time, count behind each, and the count reaches zero at the range. Try it with the + and − buttons on the right.<div class="math"><em>Rule of thumb used in 1932</em>\n  0.01 mm of aluminium  ≈  1.6 cm of air\n  5 foils stop everything  →  range ≈ <b>40 cm of air</b>\n\n<em>Range to speed</em>   Blackett\'s cloud-chamber curve for\nprotons (1932): a 40 cm track ↔ <b>v = 3.3 × 10⁷ m/s</b>\n  E = ½ × 1.67e-27 × (3.3e7)² ≈ 9e-13 J ≈ <b>5.7 MeV</b></div>'},
  {hot:'tg',mode:'wax',cam:[-0.1,1.0,7,-0.2,0.5,0],focus:['beam'],ui:['targets','legend'],title:'Why a photon cannot do that',
   text:'A photon has energy but very little momentum, so bouncing one off a heavy proton is like throwing a ping-pong ball at a bowling ball. The <b>Compton formula</b>, already tested on electrons, says how much energy a photon can hand to a particle of rest energy Mc². Put in the proton\'s 5.7 MeV and the photon would need about 55 MeV, while the whole alpha-plus-beryllium reaction only has about 11 MeV to give.<div class="math"><em>Compton, maximum recoil energy</em>\n  T = 2E² / (Mc² + 2E)        Mc² = 938 MeV for a proton\n  5.7 = 2E² / (938 + 2E)  →  2E² − 11.4E − 5347 = 0\n  <b>E ≈ 55 MeV</b>\n\n<em>energy available</em>   5.3 (alpha) + 5.7 (reaction) ≈ 11 MeV\n<em>shortfall</em>           5 × too little</div>'},
- {hot:'tg',mode:'n',cam:[0.2,1.0,7.5,-0.2,0.5,0],focus:['beam'],ui:['targets','counter','legend'],title:'Chadwick swaps in nitrogen',
-  text:'Chadwick\'s move was to repeat the measurement with a target of a different weight. He filled the chamber itself with <b>nitrogen</b> and read the recoil energies from the pulse sizes, and his colleague Norman Feather photographed nitrogen recoils in a cloud chamber. A nitrogen nucleus has mass 14, so the same push leaves it moving slowly and its track is only a few millimetres long.<div class="math"><em>cloud-chamber track</em>   ≈ 3.5 mm of air\n<em>range to speed</em>        <b>u = 4.7 × 10⁶ m/s</b>\n<em>recoil energy</em>         ½ × 14 × 1.67e-27 × u² ≈ <b>1.2 MeV</b>\n\n<em>Compton again</em>   Mc² = 13 040 MeV for nitrogen\n  1.2 = 2E² / (13040 + 2E)  →  <b>E ≈ 90 MeV</b>\n\n55 MeV ≠ 90 MeV   <em>same beam, two different answers</em></div>'},
- {hot:'tg',mode:'n',cam:[0.4,0.95,6.5,-0.2,0.5,0],focus:['beam'],ui:['targets','legend'],title:'The billiard-ball equation',
+ {hot:'ch',mode:'n',cut:true,cam:[0.45,1.05,6.5,3.6,0.5,0],focus:['beam'],ui:['targets','counter','legend'],title:'Chadwick swaps in nitrogen',
+  text:'Chadwick\'s move was to repeat the measurement with a target of a different weight. He took the wax away and filled the <b>ionisation chamber itself with nitrogen</b>, so the recoils now happen inside the can, and read their energies from the pulse sizes, and his colleague Norman Feather photographed nitrogen recoils in a cloud chamber. A nitrogen nucleus has mass 14, so the same push leaves it moving slowly and its track is only a few millimetres long.<div class="math"><em>cloud-chamber track</em>   ≈ 3.5 mm of air\n<em>range to speed</em>        <b>u = 4.7 × 10⁶ m/s</b>\n<em>recoil energy</em>         ½ × 14 × 1.67e-27 × u² ≈ <b>1.2 MeV</b>\n\n<em>Compton again</em>   Mc² = 13 040 MeV for nitrogen\n  1.2 = 2E² / (13040 + 2E)  →  <b>E ≈ 90 MeV</b>\n\n55 MeV ≠ 90 MeV   <em>same beam, two different answers</em></div>'},
+ {hot:'ch',mode:'n',cut:true,cam:[0.3,1.0,7,3.0,0.5,0],focus:['beam'],ui:['targets','legend'],title:'The billiard-ball equation',
   text:'Now assume a <b>particle</b> of unknown mass M and speed V hits a target of mass m head-on, like one billiard ball striking another. Conservation of energy and momentum gives the fastest the target can recoil. Write it for both targets, divide, and V cancels out, leaving only M.<div class="math">u_max = 2MV / (M + m)\n\n<em>wax</em>       u_p = 2MV / (M + 1)\n<em>nitrogen</em>  u_N = 2MV / (M + 14)\n\nu_p / u_N = (M + 14) / (M + 1) = 3.3e7 / 4.7e6 ≈ 7\n\nM + 14 = 7M + 7   →   6M = 7   →   <b>M ≈ 1.15</b>\n<em>Chadwick\'s value; refined to 1.0067 within months</em></div>'},
  {hot:'cloud',mode:'n',cam:[0.9,1.15,6.5,-1.6,0.3,-2.6],title:'The cloud chamber: seeing a track with your own eyes',
   text:'C. T. R. Wilson\'s chamber (1911) is a glass drum full of air saturated with water or alcohol vapour. A <b>piston</b> underneath drops suddenly, the air expands and cools, and the vapour wants to condense but has nothing to condense on. A charged particle passing through leaves a line of ions, droplets form on every ion, and for a fraction of a second the path hangs in the air as a white thread. A <b>camera</b> above fires a flash and photographs it.<div class="math"><em>What a photograph gives you</em>\n  track length        → the range, read with a ruler\n  track thickness     → how heavily it ionises (mass, charge)\n  curvature in a      → momentum:  p = q B r\n  magnetic field\n\nLong thin tracks here are protons, short fat ones are\nnitrogen recoils. Feather measured 3.5 mm nitrogen tracks.</div>'},
@@ -559,7 +557,7 @@ function animate(){
   }
   recoils.forEach(function(q){if(q.cut&&q.t<1&&q.m.position.x>=1.15){q.t=1;q.m.visible=false}});
   cloudTracks();electrometer();magnet();rangeDemo();filmScroll();geiger();
-  step(alphas,-4.6,-3.3,0.5);step(rays,-3.1,-0.85,0.55);step(passes,0.0,2.35,0.55,true);step(recoils,0.0,2.35,0.55);
+  step(alphas,-4.6,-3.3,0.5);step(rays,-3.1,-0.85,0.55);step(passes,0.0,2.35,0.55,true);step(recoils,m.x0||0.0,m.x1||2.35,0.55);
   recoils.forEach(function(q){if(q.t>=1&&!q.done){q.done=true;if(cutaway)startTrack(q.y*0.6,q.z*0.6)}});
   if(beamOn&&cutaway&&!m.rec&&frame%70===0)startTrack((Math.random()-0.5)*0.6,(Math.random()-0.5)*0.6);
   runIonisation();
