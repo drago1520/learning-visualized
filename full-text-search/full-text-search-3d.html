@@ -1,30 +1,31 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Full-text search in 3D</title>
 <style>
-/* Layout: one centered column, 3D stage on top, controls and results below */
+/* Layout: one centered column, 3D stack of build layers on top, step buttons, search box, path and counters below */
 :root{
   --bg:#f7f6f2;--surface-1:#efede7;--surface-2:#ffffff;
   --text-primary:#1f1e1c;--text-secondary:#5f5e5a;--text-muted:#8a8984;
   --border:rgba(31,30,28,.12);--border-strong:rgba(31,30,28,.24);
-  --text-accent:#185FA5;--border-accent:#378ADD;
+  --text-accent:#185FA5;--border-accent:#378ADD;--bg-accent:#E6F1FB;
   --bg-success:#E1F5EE;--text-success:#085041;--border-success:#1D9E75;
-  --text-danger:#A32D2D;--radius:8px;
+  --text-danger:#A32D2D;--radius:8px;--shadow:0 8px 24px rgba(31,30,28,.10);
   --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#1c1c1a;--surface-1:#262624;--surface-2:#2c2c2a;
   --text-primary:#f1efe8;--text-secondary:#b4b2a9;--text-muted:#888780;
   --border:rgba(241,239,232,.12);--border-strong:rgba(241,239,232,.26);
-  --text-accent:#85B7EB;--border-accent:#378ADD;
+  --text-accent:#85B7EB;--border-accent:#378ADD;--bg-accent:#0C447C;
   --bg-success:#085041;--text-success:#E1F5EE;--border-success:#5DCAA5;
-  --text-danger:#F09595;color-scheme:dark}}
+  --text-danger:#F09595;--shadow:0 8px 24px rgba(0,0,0,.45);color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#1c1c1a;--surface-1:#262624;--surface-2:#2c2c2a;
   --text-primary:#f1efe8;--text-secondary:#b4b2a9;--text-muted:#888780;
   --border:rgba(241,239,232,.12);--border-strong:rgba(241,239,232,.26);
-  --text-accent:#85B7EB;--border-accent:#378ADD;
+  --text-accent:#85B7EB;--border-accent:#378ADD;--bg-accent:#0C447C;
   --bg-success:#085041;--text-success:#E1F5EE;--border-success:#5DCAA5;
-  --text-danger:#F09595;color-scheme:dark}
+  --text-danger:#F09595;--shadow:0 8px 24px rgba(0,0,0,.45);color-scheme:dark}
 body{background:var(--bg);color:var(--text-primary);font-family:var(--font-sans);font-size:16px;line-height:1.6;padding-inline:16px;padding-block:24px}
 .wrap{max-width:680px;margin:0 auto}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -32,114 +33,186 @@ button{font:inherit;font-size:14px;color:var(--text-primary);background:transpar
 button:hover{background:var(--surface-1)}
 button:active{transform:scale(.98)}
 button:focus-visible,input:focus-visible{outline:2px solid var(--border-accent);outline-offset:2px}
+button.on{border-color:var(--border-accent);color:var(--text-accent);background:var(--bg-accent)}
 input[type=text]{font:inherit;font-size:15px;height:36px;padding:0 12px;color:var(--text-primary);background:var(--surface-2);border:0.5px solid var(--border-strong);border-radius:var(--radius)}
-input[type=range]{accent-color:var(--border-accent)}
-.stage{height:440px;perspective:1100px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:grab;touch-action:none;user-select:none}
-.scene{position:relative;width:440px;height:190px;transform-style:preserve-3d;transition:transform .25s}
-.plane{position:absolute;inset:0;border-radius:12px;border:0.5px solid var(--border-strong);background:var(--surface-2);padding:12px 14px;transition:opacity .4s}
+.stage{height:470px;perspective:1200px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:grab;touch-action:none;user-select:none}
+.scene{position:relative;width:480px;height:196px;transform-style:preserve-3d;transition:transform .25s}
+.plane{position:absolute;inset:0;border-radius:12px;border:0.5px solid var(--border-strong);background:var(--surface-2);padding:10px 12px;transition:opacity .4s,filter .4s,transform .4s,visibility .4s}
+.plane.gone{opacity:.3;filter:grayscale(1)}
+.plane.away{opacity:0;visibility:hidden}
 .lbl{font-size:12px;color:var(--text-secondary);margin:0 0 8px;font-weight:500}
-.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:var(--radius);margin:2px;background:var(--surface-1);border:0.5px solid var(--border);transition:all .3s}
-.stop{text-decoration:line-through;color:var(--text-muted)}
-.doc{font-size:13px;padding:6px 10px;border-radius:var(--radius);background:var(--surface-1);border:0.5px solid var(--border);margin-bottom:6px;transition:all .3s}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px 8px}
+.doc{font-size:13px;padding:5px 9px;border-radius:var(--radius);background:var(--surface-1);border:0.5px solid var(--border);transition:all .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wl{font-size:12px;color:var(--text-secondary);white-space:nowrap}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:11px;padding:2px 7px;border-radius:var(--radius);margin:1px;background:var(--surface-1);border:0.5px solid var(--border);transition:all .3s}
+.idx{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hit{background:var(--bg-success)!important;color:var(--text-success)!important;border-color:var(--border-success)!important}
-.stepbtn.on{border-color:var(--border-accent);color:var(--text-accent)}
+.cmp{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.metric{flex:1;min-width:150px;background:var(--surface-1);border-radius:var(--radius);padding:10px 14px}
+.metric .k{font-size:13px;color:var(--text-secondary)}
+.metric .v{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.sbar{display:flex;align-items:center;gap:10px;height:46px;padding:0 18px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-2);transition:border-color .15s,box-shadow .15s}
+.sbar:focus-within{border-color:var(--border-accent);box-shadow:0 0 0 3px var(--bg-accent)}
+.sbar .ic{flex:none;color:var(--text-muted)}
+.sbar input{flex:1;min-width:0;border:0;background:transparent;height:100%;padding:0;font:inherit;font-size:15px;color:var(--text-primary)}
+.sbar input:focus-visible{outline:none}
+.how{position:relative;display:inline-flex;align-items:center;gap:4px}
+.how .sec{margin:0}
+.info{display:inline-flex;padding:3px;border:0;border-radius:50%;background:transparent;color:var(--text-muted)}
+.info:hover,.info:focus-visible,.how.open .info{background:transparent;color:var(--text-accent)}
+.tip{position:absolute;left:0;top:calc(100% + 8px);z-index:10;width:min(400px,calc(100vw - 32px));padding:12px 14px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);box-shadow:var(--shadow);opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility .15s}
+.how:hover .tip,.how:focus-within .tip,.how.open .tip{opacity:1;visibility:visible;transform:none}
+.tip ol#path{font-size:13px;padding-left:20px}
+.drop{margin-top:6px;border:1px solid var(--border);border-radius:24px;background:var(--surface-2);box-shadow:var(--shadow);padding:6px 0;overflow:hidden}
+.drop .ri{padding:8px 18px 8px 46px;font-size:14px}
+.drop .ri:hover{background:var(--surface-1)}
+.drop .ri .m{color:var(--text-secondary)}
+.drop mark{background:var(--bg-success);color:var(--text-success);border-radius:4px;padding:0 3px}
+.ttl{font-size:28px;font-weight:600;letter-spacing:-.01em;line-height:1.25;margin:0 0 1.5rem;text-wrap:balance}
+.h2{font-size:19px;font-weight:600;margin:0 0 2px;text-wrap:balance}
+.intro{font-size:14px;color:var(--text-secondary);margin:0 0 12px}
+.part{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+.sec{font-size:12px;font-weight:500;color:var(--text-muted);letter-spacing:.02em;margin:0 0 4px}
+ol#path{margin:0;padding-left:22px;font-size:14px}
+ol#path li{padding:3px 0}
 @media (prefers-reduced-motion:reduce){.scene,.plane,.chip,.doc{transition:none}}
 </style>
 
 <div class="wrap">
-<h2 class="sr-only">A 3D stack showing documents at the bottom, their split words in the middle, and the inverted index on top, with a search box that highlights matching words and documents.</h2>
+<h1 class="ttl">How full-text search works</h1>
+<p class="sr-only">A 3D stack showing six product documents at the bottom, their split words in the middle, and the inverted index on top, with a search box that lights up the posting lists and documents a query uses.</p>
 
+<section>
+<h2 class="h2">Part 1 · How the index is built</h2>
+<p class="intro">This happens once, when a product is saved to the shop.</p>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+  <button class="stepbtn" data-s="1">1. Documents</button>
+  <span aria-hidden="true" style="color:var(--text-muted)">›</span>
+  <button class="stepbtn" data-s="2">2. Split words</button>
+  <span aria-hidden="true" style="color:var(--text-muted)">›</span>
+  <button class="stepbtn" data-s="3">3. Build index</button>
+</div>
+<p id="cap" style="font-size:14px;color:var(--text-secondary);margin:0;min-height:48px"></p>
 <div class="stage" id="stage">
   <div class="scene" id="scene">
     <div class="plane" id="p1">
-      <p class="lbl">1 · Documents</p>
-      <div class="doc" data-doc="1">Doc 1 · Red beads for bracelets</div>
-      <div class="doc" data-doc="2">Doc 2 · Blue glass beads</div>
-      <div class="doc" data-doc="3">Doc 3 · Red stone pendant</div>
+      <p class="lbl">1 · Documents (6 products)</p>
+      <div class="grid2" id="docs"></div>
     </div>
     <div class="plane" id="p2">
-      <p class="lbl">2 · Split into words</p>
-      <div style="font-size:12px;color:var(--text-secondary)">Doc 1 <span class="chip" data-w="red">red</span><span class="chip" data-w="beads">beads</span><span class="chip stop">for</span><span class="chip" data-w="bracelets">bracelets</span></div>
-      <div style="font-size:12px;color:var(--text-secondary);margin-top:6px">Doc 2 <span class="chip" data-w="blue">blue</span><span class="chip" data-w="glass">glass</span><span class="chip" data-w="beads">beads</span></div>
-      <div style="font-size:12px;color:var(--text-secondary);margin-top:6px">Doc 3 <span class="chip" data-w="red">red</span><span class="chip" data-w="stone">stone</span><span class="chip" data-w="pendant">pendant</span></div>
+      <p class="lbl">2 · Split into lowercase words</p>
+      <div class="grid2" id="words"></div>
     </div>
     <div class="plane" id="p3">
-      <p class="lbl">3 · Inverted index (word → docs)</p>
-      <div id="idx" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px"></div>
+      <p class="lbl">3 · Inverted index · each word points to its posting list, the documents that contain it</p>
+      <div class="grid3" id="idx"></div>
     </div>
   </div>
 </div>
+<p style="font-size:13px;color:var(--text-muted);margin:0 0 1rem;text-align:center">Drag the stack in any direction to turn it.</p>
+</section>
 
-<div style="display:flex;align-items:center;gap:12px;margin:0 0 1rem">
-  <label for="rot" style="font-size:14px;color:var(--text-secondary)">Rotate</label>
-  <input type="range" id="rot" min="-70" max="70" step="1" value="-25" style="flex:1">
-</div>
+<section class="part">
+<h2 class="h2">Part 2 · Using the full-text search</h2>
+<p class="intro">Type a word, and the stack above lights up the posting lists and products your search uses.</p>
 
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-  <button class="stepbtn" data-s="1">1 Documents</button>
-  <button class="stepbtn" data-s="2">2 Split words</button>
-  <button class="stepbtn" data-s="3">3 Build index</button>
-  <button class="stepbtn" data-s="4">4 Search</button>
+<div class="sbar">
+  <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
+  <input id="q" type="search" placeholder="Search products" aria-label="Search products" autocomplete="off">
 </div>
-<p id="cap" style="font-size:14px;color:var(--text-secondary);margin:0 0 1.25rem;min-height:24px"></p>
-
-<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-  <input id="q" type="text" placeholder="red beads" style="flex:1;min-width:160px">
-  <button id="go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="vertical-align:-3px"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg> Search</button>
-</div>
+<div id="res" class="drop" hidden></div>
 <p id="err" style="font-size:13px;color:var(--text-danger);margin:6px 0 0;min-height:18px"></p>
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px">
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px">
   <span style="font-size:13px;color:var(--text-muted);align-self:center">Try</span>
-  <button class="pre" style="font-size:13px">red</button>
+  <button class="pre" style="font-size:13px">beads</button>
   <button class="pre" style="font-size:13px">red beads</button>
-  <button class="pre" style="font-size:13px">glass</button>
-  <button class="pre" style="font-size:13px">Beads for bracelets</button>
+  <button class="pre" style="font-size:13px">rose quartz</button>
+  <button class="pre" style="font-size:13px">beads for bracelets</button>
 </div>
-<div id="res" style="font-size:14px"></div>
+
+<div class="how" id="how">
+  <span class="sec">How the search found them</span>
+  <button class="info" id="info" aria-label="Show how the search found them" aria-describedby="tip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+  <div class="tip" id="tip" role="tooltip"><ol id="path"></ol></div>
+</div>
+<div class="cmp">
+  <div class="metric"><div class="k">Documents read with the index</div><div class="v" id="v-idx">–</div></div>
+  <div class="metric"><div class="k">Documents read by scanning them all</div><div class="v" id="v-scan">6</div></div>
+</div>
+</section>
 </div>
 
 <script>
-const index={red:[1,3],beads:[1,2],bracelets:[1],blue:[2],glass:[2],stone:[3],pendant:[3]};
-const stops=['for','the','a','and','of'];
-const idx=document.getElementById('idx');
-Object.entries(index).forEach(([w,d])=>{const r=document.createElement('div');r.className='chip';r.dataset.i=w;r.style.margin='0';r.textContent=w+' → '+d.join(', ');idx.appendChild(r)});
-const caps={1:'You start with plain documents.',2:'Each document is split into lowercase words, and filler words like "for" are dropped.',3:'Every word points to the documents that contain it, which is called the inverted index.',4:'Your query is split the same way, then each word is looked up in the index, so the documents themselves are never scanned.'};
-const scene=document.getElementById('scene'),rot=document.getElementById('rot'),st=document.getElementById('stage');
-let rz=-25,step=4;
-function fit(){return Math.min(1,(st.clientWidth-8)/440)}
-function place(){scene.style.transform='translateY(95px) scale('+fit()+') rotateX(52deg) rotateZ('+rz+'deg)';['p1','p2','p3'].forEach((id,i)=>{document.getElementById(id).style.transform='translateZ('+(i*115)+'px)'})}
-function setStep(s){step=s;document.querySelectorAll('.stepbtn').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));['p1','p2','p3'].forEach((id,i)=>{document.getElementById(id).style.opacity=(i+1<=s||s===4)?1:0.12});document.getElementById('cap').textContent=caps[s]}
-rot.addEventListener('input',()=>{rz=+rot.value;place()});
-let drag=false,sx=0,sr=0;
-st.addEventListener('pointerdown',e=>{drag=true;sx=e.clientX;sr=rz;st.setPointerCapture(e.pointerId)});
-st.addEventListener('pointermove',e=>{if(!drag)return;rz=Math.max(-70,Math.min(70,Math.round(sr+(e.clientX-sx)/3)));rot.value=rz;place()});
-st.addEventListener('pointerup',()=>{drag=false});
-window.addEventListener('resize',place);
-document.querySelectorAll('.stepbtn').forEach(b=>b.onclick=()=>setStep(+b.dataset.s));
-const q=document.getElementById('q'),err=document.getElementById('err'),res=document.getElementById('res');
-q.addEventListener('input',()=>{err.textContent=''});
+const docs={1:'Red glass beads',2:'Amethyst chips',3:'Blue seed beads',4:'Copper wire',5:'Rose quartz',6:'Pearl beads'};
+const skus={1:'BD-101',2:'ST-330',3:'BD-204',4:'WR-015',5:'ST-118',6:'BD-077'};
+const stops=['for','the','a','and','of','with'];
+const tok=t=>t.toLowerCase().split(/\W+/).filter(Boolean);
+const index={};
+Object.entries(docs).forEach(([n,t])=>tok(t).forEach(w=>{(index[w]=index[w]||[]);if(!index[w].includes(+n))index[w].push(+n)}));
+const $=id=>document.getElementById(id);
+$('docs').innerHTML=Object.entries(docs).map(([n,t])=>'<div class="doc" data-doc="'+n+'">'+n+' · '+t+'</div>').join('');
+$('words').innerHTML=Object.entries(docs).map(([n,t])=>'<div class="wl">'+n+' '+tok(t).map(w=>'<span class="chip" data-w="'+w+'">'+w+'</span>').join('')+'</div>').join('');
+$('idx').innerHTML=Object.keys(index).sort().map(w=>'<span class="chip idx" data-i="'+w+'">'+w+' → '+index[w].join(', ')+'</span>').join('');
+const caps={
+  1:'You start with plain documents, here six product names from the shop.',
+  2:'Each document is split into lowercase words. This happens once, when a document is saved, so searches never redo it.',
+  3:'Every word gets a posting list of the documents that contain it. Together these lists are the inverted index.',
+  4:'Your query is split the same way, each word is looked up in the index, and only the matching documents are read.'
+};
+let step=4;
+function setStep(s){
+  step=s;
+  document.querySelectorAll('.stepbtn').forEach(b=>b.classList.toggle('on',+b.dataset.s===s));
+  ['p1','p2','p3'].forEach((id,i)=>$(id).classList.toggle('gone',s<4&&i+1>s));
+  $('p2').classList.toggle('away',s===4);
+  if(s<4)$('cap').textContent=caps[s];
+  place();
+}
+function clearHits(){document.querySelectorAll('.hit').forEach(e=>e.classList.remove('hit'))}
 function search(){
-  const raw=q.value.trim();
-  document.querySelectorAll('.hit').forEach(e=>e.classList.remove('hit'));
-  if(!raw){err.textContent='Type a word first';res.innerHTML='';return}
+  const raw=$('q').value.trim();clearHits();
+  if(!raw){$('err').textContent='';clearHits();$('res').innerHTML='';$('res').hidden=true;$('path').innerHTML='';$('v-idx').textContent='–';return}
   setStep(4);
-  const terms=raw.toLowerCase().split(/\W+/).filter(t=>t&&!stops.includes(t));
-  const score={};
-  terms.forEach(t=>{const d=index[t];if(!d)return;
-    document.querySelector('[data-i="'+t+'"]').classList.add('hit');
+  const all=tok(raw),dropped=all.filter(t=>stops.includes(t)),terms=all.filter(t=>!stops.includes(t));
+  const score={},lines=[];
+  lines.push('Your query splits into '+(terms.join(', ')||'no searchable words')+(dropped.length?', and filler words like "'+dropped.join('", "')+'" are dropped.':'.'));
+  terms.forEach(t=>{const d=index[t];
+    if(!d){lines.push('"'+t+'" has no posting list, so it matches nothing.');return}
+    $('idx').querySelector('[data-i="'+t+'"]').classList.add('hit');
     document.querySelectorAll('[data-w="'+t+'"]').forEach(c=>c.classList.add('hit'));
+    lines.push('The posting list for "'+t+'" is '+d.join(', ')+'.');
     d.forEach(n=>score[n]=(score[n]||0)+1)});
   Object.keys(score).forEach(n=>document.querySelector('[data-doc="'+n+'"]').classList.add('hit'));
-  const ranked=Object.entries(score).sort((a,b)=>b[1]-a[1]);
-  const dropped=raw.toLowerCase().split(/\W+/).filter(t=>stops.includes(t));
-  let h='<p style="margin:0 0 6px;color:var(--text-secondary);font-size:13px">Looked up: '+(terms.join(', ')||'nothing')+(dropped.length?' · dropped: '+dropped.join(', '):'')+'</p>';
-  h+=ranked.length?ranked.map(([n,s],i)=>'<div style="padding:6px 0;border-top:0.5px solid var(--border)">#'+(i+1)+' · Doc '+n+' <span style="color:var(--text-secondary)">matches '+s+' of '+terms.length+' words</span></div>').join(''):'<p style="margin:0">No document contains these words.</p>';
-  res.innerHTML=h;
+  const ranked=Object.entries(score).sort((a,b)=>b[1]-a[1]||a[0]-b[0]);
+  if(ranked.length)lines.push('Only documents '+ranked.map(r=>r[0]).sort((a,b)=>a-b).join(', ')+' are read, and the ones matching more words rank higher.');
+  $('path').innerHTML=lines.map(l=>'<li>'+l+'</li>').join('');
+  const mark=t=>t.split(/(\W+)/).map(p=>terms.includes(p.toLowerCase())?'<mark>'+p+'</mark>':p).join('');
+  $('res').innerHTML=ranked.length?ranked.map(([n,s],i)=>'<div class="ri">#'+(i+1)+' · '+mark(docs[n])+' <span class="m">matches '+s+' of '+terms.length+' words</span></div>').join(''):'<div class="ri m">No product contains these words.</div>';
+  $('res').hidden=false;
+  $('v-idx').textContent=ranked.length;
 }
-document.getElementById('go').onclick=search;
-q.addEventListener('keydown',e=>{if(e.key==='Enter')search()});
-document.querySelectorAll('.pre').forEach(b=>b.onclick=()=>{q.value=b.textContent;err.textContent='';search()});
-place();setStep(4);
+const scene=$('scene'),st=$('stage');
+let rz=-22,rx=52;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function place(){
+  const searching=step===4,top=searching?120:240;
+  const ty=Math.round(top/2*Math.sin(rx*Math.PI/180)),f=Math.min(1,(st.clientWidth-8)/480);
+  scene.style.transform='translateY('+ty+'px) scale('+f+') rotateX('+rx+'deg) rotateZ('+rz+'deg)';
+  $('p1').style.transform='translateZ(0px)';$('p2').style.transform='translateZ(120px)';$('p3').style.transform='translateZ('+top+'px)';
+}
+let drag=false,d0={};
+st.addEventListener('pointerdown',e=>{drag=true;d0={x:e.clientX,y:e.clientY,rz,rx};st.setPointerCapture(e.pointerId)});
+st.addEventListener('pointermove',e=>{if(!drag)return;rz=clamp(Math.round(d0.rz+(e.clientX-d0.x)/3),-70,70);rx=clamp(Math.round(d0.rx-(e.clientY-d0.y)/3),0,80);place()});
+st.addEventListener('pointerup',()=>{drag=false});
+window.addEventListener('resize',place);
+document.querySelectorAll('.stepbtn').forEach(b=>b.onclick=()=>{setStep(+b.dataset.s);if(+b.dataset.s<4)clearHits()});
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+$('q').addEventListener('input',search);
+document.querySelectorAll('.pre').forEach(b=>b.onclick=()=>{$('q').value=b.textContent;$('err').textContent='';search()});
+$('info').addEventListener('click',()=>$('how').classList.toggle('open'));
+document.addEventListener('click',e=>{if(!$('how').contains(e.target))$('how').classList.remove('open')});
+setStep(3);$('path').innerHTML='<li>Search for something, and each step will show up here.</li>';
 </script>
 
 </body></html>
