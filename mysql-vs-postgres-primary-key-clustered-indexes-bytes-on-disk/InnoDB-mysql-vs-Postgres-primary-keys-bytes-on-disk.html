@@ -38,6 +38,7 @@ code,.mono{font-family:var(--font-mono);font-size:13px}
 .scene{position:relative;width:480px;height:170px;transform-style:preserve-3d;transition:transform .25s}
 .plane{position:absolute;inset:0;border-radius:12px;border:0.5px solid var(--border-strong);background:var(--surface-2);padding:10px 12px;transition:opacity .4s}
 .plane.empty{background:transparent;border-style:dashed}
+.plane.gone{opacity:.3;filter:grayscale(1)}
 .lbl{font-size:12px;color:var(--text-secondary);margin:0 0 6px;font-weight:500}
 .pages{display:flex;gap:8px}
 .page{flex:1;min-width:0;border-radius:var(--radius);background:var(--surface-1);border:0.5px solid var(--border);padding:5px 6px;transition:all .3s}
@@ -108,7 +109,7 @@ ol#path li{padding:3px 0}
   <div class="metric" id="m-mysql"><div class="k">MySQL pages read</div><div class="v" id="v-mysql">–</div></div>
   <div class="metric" id="m-pg"><div class="k">PostgreSQL pages read</div><div class="v" id="v-pg">–</div></div>
 </div>
-<p style="font-size:13px;color:var(--text-muted);margin:12px 0 0">The example table has 6 products, so each tree has one root page and two leaf pages. Real tables have more levels, and the pattern stays the same.</p>
+<p style="font-size:13px;color:var(--text-muted);margin:12px 0 0">The example table has 6 products, so each tree has one root node and two leaves. Real tables have more levels, and the pattern stays the same.</p>
 
 <section class="part2" id="part2">
   <h3 id="p2title"></h3>
@@ -137,16 +138,16 @@ const leaves={A:[1,2,3],B:[4,5,6]};
 function tid(id){for(let p=0;p<heap.length;p++){const s=heap[p].indexOf(id);if(s>-1)return '('+p+','+(s+1)+')'}}
 const bySku=Object.keys(rows).map(Number).sort((a,b)=>rows[a][0].localeCompare(rows[b][0]));
 const caps={
-  mysql:'InnoDB stores the whole row inside the primary key\'s leaf pages, so the table itself is kept sorted by id. That is a clustered index. A secondary index stores the id, which sends you back through the primary key.',
+  mysql:'InnoDB stores the whole row inside the primary key\'s leaves, so the table itself is kept sorted by id. That is a clustered index. A secondary index stores the id, which sends you back through the primary key.',
   pg:'PostgreSQL keeps rows in a heap in the order they arrived. The primary key is a separate B-tree whose leaves hold each row\'s address as (page, slot), and every other index points to that same address.'
 };
 const Q={
-  pk:{mysql:[[['r-B'],'The root page sends id 5 to leaf page B.'],[['lp-B','l-5'],'Leaf page B holds the full row, so the search ends here.']],
-      pg:[[['r-B'],'The root page sends id 5 to leaf page B.'],[['lp-B','l-5'],'Leaf page B gives you the address '+tid(5)+'.'],[['hp-2','h-5'],'Heap page 2, slot 2 holds the row.']]},
-  sku:{mysql:[[['s-3'],'The sku index finds BD-204 and gives you id 3.'],[['r-A'],'Then the primary key root sends id 3 to leaf page A.'],[['lp-A','l-3'],'Leaf page A holds the full row.']],
+  pk:{mysql:[[['r-B'],'The root node sends id 5 to leaf B.'],[['lp-B','l-5'],'Leaf B holds the full row, so the search ends here.']],
+      pg:[[['r-B'],'The root node sends id 5 to leaf B.'],[['lp-B','l-5'],'Leaf B gives you the address '+tid(5)+'.'],[['hp-2','h-5'],'Heap page 2, slot 2 holds the row.']]},
+  sku:{mysql:[[['s-3'],'The sku index finds BD-204 and gives you id 3.'],[['r-A'],'Then the primary key root node sends id 3 to leaf A.'],[['lp-A','l-3'],'Leaf A holds the full row.']],
        pg:[[['s-3'],'The sku index finds BD-204 and gives you the address '+tid(3)+'.'],[['hp-1','h-3'],'Heap page 1, slot 2 holds the row.']]},
-  range:{mysql:[[['r-A','r-B'],'The root page sends ids 2 to 4 to leaf pages A and B.'],[['lp-A','l-2','l-3'],'Leaf page A holds rows 2 and 3 next to each other.'],[['lp-B','l-4'],'The next leaf page holds row 4, so the rows come out already sorted.']],
-         pg:[[['r-A','r-B'],'The root page sends ids 2 to 4 to leaf pages A and B.'],[['lp-A','l-2','l-3','lp-B','l-4'],'The leaf pages give three addresses: '+tid(2)+', '+tid(3)+' and '+tid(4)+'.'],[['hp-2','h-2'],'Heap page 2 holds id 2.'],[['hp-1','h-3'],'Heap page 1 holds id 3.'],[['hp-0','h-4'],'Heap page 0 holds id 4, so each row in the range costs its own page read.']]}
+  range:{mysql:[[['r-A','r-B'],'The root node sends ids 2 to 4 to leaves A and B.'],[['lp-A','l-2','l-3'],'Leaf A holds rows 2 and 3 next to each other.'],[['lp-B','l-4'],'The next leaf holds row 4, so the rows come out already sorted.']],
+         pg:[[['r-A','r-B'],'The root node sends ids 2 to 4 to leaves A and B.'],[['lp-A','l-2','l-3','lp-B','l-4'],'The leaves give three addresses: '+tid(2)+', '+tid(3)+' and '+tid(4)+'.'],[['hp-2','h-2'],'Heap page 2 holds id 2.'],[['hp-1','h-3'],'Heap page 1 holds id 3.'],[['hp-0','h-4'],'Heap page 0 holds id 4, so each row in the range costs its own page read.']]}
 };
 function pages(steps){const s=new Set();steps.forEach(([sel])=>sel.forEach(id=>{if(id.startsWith('r-'))s.add('root');else if(id.startsWith('lp-')||id.startsWith('hp-'))s.add(id);else if(id.startsWith('s-'))s.add('sec')}));return s.size}
 let eng='mysql',cur='pk',timers=[];
@@ -155,10 +156,10 @@ function row(id,text){return '<div class="row" id="'+id+'">'+text+'</div>'}
 function render(){
   const my=eng==='mysql';
   $('p4').innerHTML='<p class="lbl">Secondary index on sku (sorted by sku)</p><div>'+bySku.map(i=>'<span class="chip" id="s-'+i+'">'+rows[i][0]+' → '+(my?'id '+i:tid(i))+'</span>').join('')+'</div>';
-  $('p3').innerHTML='<p class="lbl">Primary key B-tree · root page</p><div class="pages"><div class="page" id="r-A"><div class="row">ids 1–3 → leaf page A</div></div><div class="page" id="r-B"><div class="row">ids 4–6 → leaf page B</div></div></div>';
-  $('p2').innerHTML='<p class="lbl">'+(my?'Primary key leaf pages, which are the table rows':'Primary key leaf pages (id → row address)')+'</p><div class="pages">'+Object.entries(leaves).map(([k,ids])=>'<div class="page" id="lp-'+k+'"><div class="pt">leaf page '+k+'</div>'+ids.map(i=>row('l-'+i,my?i+' · '+rows[i][0]+' · '+rows[i][1]:'id '+i+' → '+tid(i))).join('')+'</div>').join('')+'</div>';
+  $('p3').innerHTML='<p class="lbl">Primary key B-tree · root node</p><div class="pages"><div class="page" id="r-A"><div class="row">ids 1–3 → leaf A</div></div><div class="page" id="r-B"><div class="row">ids 4–6 → leaf B</div></div></div>';
+  $('p2').innerHTML='<p class="lbl">'+(my?'Primary key B-tree leaves, which hold the row data. Each node is one 16 KB page on disk.':'Primary key B-tree leaves, holding heap addresses. Each node is one 8 KB page on disk.')+'</p><div class="pages">'+Object.entries(leaves).map(([k,ids])=>'<div class="page" id="lp-'+k+'"><div class="pt">leaf '+k+'</div>'+ids.map(i=>row('l-'+i,my?i+' · '+rows[i][0]+' · '+rows[i][1]:'id '+i+' → '+tid(i))).join('')+'</div>').join('')+'</div>';
   const p1=$('p1');
-  if(my){p1.className='plane empty';p1.innerHTML='<p class="lbl">Separate table storage</p><p style="font-size:13px;color:var(--text-muted);margin:24px 0 0;text-align:center">InnoDB has no separate heap. The rows live in the leaf pages above.</p>'}
+  if(my){p1.className='plane empty';p1.innerHTML='<p class="lbl">Separate table storage</p><p style="font-size:13px;color:var(--text-muted);margin:24px 0 0;text-align:center">InnoDB has no separate heap. The rows live in the leaves above.</p>'}
   else{p1.className='plane';p1.innerHTML='<p class="lbl">Heap (rows in arrival order)</p><div class="pages">'+heap.map((ids,p)=>'<div class="page" id="hp-'+p+'"><div class="pt">heap page '+p+'</div>'+ids.map((i,s)=>row('h-'+i,'('+p+','+(s+1)+') id '+i+' · '+rows[i][1])).join('')+'</div>').join('')+'</div>'}
   $('cap').textContent=caps[eng];
   document.querySelectorAll('.eng').forEach(b=>b.classList.toggle('on',b.dataset.e===eng));
@@ -183,14 +184,14 @@ const P2D={
       3:'The row is a small header that tracks which transactions can see it, followed by your column values in order.'}},
   mysql:{title:'Part 2 · How a MySQL primary key lookup becomes bytes on disk (actual row data)',
     intro:'Follow id 5 from the table file down to the row itself, one zoom level at a time.',
-    tree:['Table file','Page 6','Row id 5'],
+    tree:['Table file','Leaf B','Row id 5'],
     planes:[
-      '<p class="lbl" style="margin:0">Table file on disk</p>'+pathLine('/var/lib/mysql/shop/products.ibd')+'<div class="bx">'+bx('pages 0–3','file info','dim',1.1)+bx('page 4','root','sel')+bx('page 5','ids 1–3')+bx('page 6','ids 4–6','sel')+'</div>',
-      '<p class="lbl">Page 6, a primary key leaf, opened up</p><div class="bx">'+bx('header','','dim','0 0 50px')+bx('id 4','','','0 0 60px')+bx('id 5','','sel','0 0 60px')+bx('id 6','','','0 0 60px')+'<div class="b free">free space</div>'+bx('directory','','sel','0 0 80px')+'</div>'+arrow('M428 97C428 136,164 136,164 99'),
+      '<p class="lbl" style="margin:0">Table file on disk</p>'+pathLine('/var/lib/mysql/shop/products.ibd')+'<div class="bx">'+bx('pages 0–3','file info','dim',1.1)+bx('page 4','root node','sel')+bx('page 5','leaf A')+bx('page 6','leaf B','sel')+'</div>',
+      '<p class="lbl">Leaf B, opened up</p><div class="bx">'+bx('header','','dim','0 0 50px')+bx('id 4','','','0 0 60px')+bx('id 5','','sel','0 0 60px')+bx('id 6','','','0 0 60px')+'<div class="b free">free space</div>'+bx('directory','','sel','0 0 80px')+'</div>'+arrow('M428 97C428 136,164 136,164 99'),
       '<p class="lbl">Row id 5, opened up</p><div class="bx">'+bx('header','5 B','dim',.8)+bx('id','5','sel',.5)+bx('trx id','hidden','dim',.8)+bx('roll ptr','hidden','dim',.8)+bx('sku','ST-118','sel')+bx('name','Rose quartz','sel',1.4)+'</div>'],
     caps:{
-      1:'InnoDB keeps each table in one .ibd file, made of 16 KB pages. The lookup starts at the primary key\'s root page 4, which sends id 5 down to leaf page 6, and page 6 starts at byte 6 × 16384 = 98304 of the file.',
-      2:'Inside leaf page 6 the rows sit in id order. The page directory at the end of the page lets InnoDB binary search them, so it lands on id 5 in a step or two.',
+      1:'InnoDB keeps each table in one .ibd file, made of 16 KB pages. The lookup starts at the primary key\'s root node on page 4, which sends id 5 down to leaf B on page 6, starting at byte 6 × 16384 = 98304 of the file.',
+      2:'Inside leaf B the rows sit in id order. The page directory at the end of the page lets InnoDB binary search them, so it lands on id 5 in a step or two.',
       3:'The row is the full record, with a small header, the id, two hidden columns InnoDB uses for transactions, and then your other columns in order.'}}
 };
 function buildP2(){
@@ -209,6 +210,9 @@ function renderP2(){
 }
 function run(q,animate){
   cur=q;timers.forEach(clearTimeout);timers=[];
+  const used=new Set();
+  Q[q][eng].forEach(([sel])=>sel.forEach(id=>used.add(id.startsWith('s-')?'p4':id.startsWith('r-')?'p3':/^(lp|l)-/.test(id)?'p2':'p1')));
+  ['p1','p2','p3','p4'].forEach(p=>$(p).classList.toggle('gone',!used.has(p)));
   document.querySelectorAll('.qb').forEach(b=>b.classList.toggle('on',b.dataset.q===q));
   document.querySelectorAll('.hit').forEach(e=>e.classList.remove('hit'));
   $('v-mysql').textContent=pages(Q[q].mysql);$('v-pg').textContent=pages(Q[q].pg);
