@@ -1,0 +1,521 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>React Reconciliation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Mochiy+Pop+One&family=Nunito:wght@500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: one sticker-card slide at a time on a polka-dot pastel ground; a blocky red display face carries the Soviet poster feel, a rounded Japanese face carries the kawaii, and every component in the trees is a little face. Single deliberate pastel theme. */
+  :root {
+    color-scheme: light;
+    --bg: #ffe9ef; --dot: #ffc9d8; --surface: #fffaf9; --fg: #3b1d2a; --muted: #9c6a7c; --line: #3b1d2a;
+    --red: #d7263d; --red-soft: #ffd1d8;
+    --pink: #ff8fb1; --pink-soft: #ffd6e3;
+    --mint: #6fdcc0; --mint-soft: #d5f6ec;
+    --sun: #ffd166; --sun-soft: #fff1c7;
+    --bad: #d7263d;
+    --font-poster: "Russo One", "Arial Black", Impact, sans-serif;
+    --font-cute: "Mochiy Pop One", "Nunito", "Segoe UI", sans-serif;
+    --font-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg) radial-gradient(var(--dot) 2.2px, transparent 2.4px) 0 0 / 22px 22px;
+    color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.5; font-weight: 500;
+    padding-block: 20px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 900px; margin: 0 auto; display: grid; gap: 16px; min-height: 100%; grid-template-rows: auto 1fr auto; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; font: 700 14px var(--font-body); color: var(--muted); }
+  .topbar b { font-family: var(--font-poster); color: var(--red); font-weight: 400; letter-spacing: .04em; text-transform: uppercase; }
+  .topbar b::before { content: "★ "; color: var(--red); }
+  .slide {
+    background: var(--surface); border: 3px solid var(--line); border-radius: 22px; padding: 30px;
+    box-shadow: 8px 8px 0 var(--pink); display: grid; gap: 22px; align-content: start; min-width: 0; position: relative;
+  }
+  .slide h1 { font-family: var(--font-poster); font-weight: 400; font-size: clamp(30px, 5.2vw, 52px); margin: 0; line-height: 1.08; text-wrap: balance; color: var(--red); text-shadow: 3px 3px 0 var(--pink-soft); text-transform: uppercase; letter-spacing: .01em; }
+  .slide h2 { font-family: var(--font-cute); font-weight: 400; font-size: clamp(19px, 2.8vw, 26px); margin: 0; line-height: 1.35; text-wrap: balance; }
+  .slide h2 b { color: var(--red); font-weight: 400; }
+  .slide p { margin: 0; max-width: 62ch; }
+  .muted { color: var(--muted); }
+  .sticker { display: inline-block; font-family: var(--font-cute); background: var(--sun); border: 3px solid var(--line); border-radius: 999px; padding: 6px 16px; box-shadow: 4px 4px 0 var(--line); transform: rotate(-3deg); justify-self: start; }
+  .stars { font-size: 24px; color: var(--red); letter-spacing: .3em; }
+  .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .nav button, .run, .target, .ui .btn {
+    font-family: var(--font-cute); font-weight: 400; cursor: pointer; border: 3px solid var(--line); border-radius: 999px;
+    background: var(--surface); color: var(--fg); box-shadow: 4px 4px 0 var(--line); transition: transform .1s, box-shadow .1s;
+  }
+  .nav button { font-size: 15px; padding: 9px 18px; }
+  .nav button:active, .run:active, .target:active, .ui .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--line); }
+  .nav button:disabled { opacity: .35; cursor: default; box-shadow: none; }
+  .nav button:focus-visible, .target:focus-visible, .run:focus-visible, .ui .btn:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+  .dots { display: flex; gap: 8px; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--pink-soft); border: 2px solid var(--line); }
+  .dots i.on { background: var(--red); }
+  svg { width: 100%; height: auto; display: block; }
+  .edge { stroke: var(--line); stroke-width: 2.5; stroke-linecap: round; }
+  .node .face { fill: var(--surface); stroke: var(--line); stroke-width: 2.5; transition: fill .15s; }
+  .node .eye { fill: var(--line); }
+  .node .mouth { fill: none; stroke: var(--line); stroke-width: 2; stroke-linecap: round; }
+  .node .blush { fill: var(--pink); opacity: 0; transition: opacity .15s; }
+  .node.doing .face { fill: var(--sun); }
+  .node.doing .blush { opacity: .8; }
+  .node.done .face { fill: var(--mint); }
+  .node.done .blush { opacity: 0; }
+  .lbl { font: 700 11px var(--font-body); fill: var(--muted); text-anchor: middle; }
+
+  /* slide 2 */
+  .convert { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; }
+  @media (max-width: 560px) { .convert { grid-template-columns: 1fr; } .arrow { transform: rotate(90deg); justify-self: center; } }
+  pre { margin: 0; font: 14px/1.65 var(--font-mono); background: var(--sun-soft); border: 3px solid var(--line); border-radius: 14px; padding: 14px 16px; overflow-x: auto; min-width: 0; }
+  .tag { color: var(--red); } .attr { color: #1f8f74; }
+  .arrow { width: 70px; height: 24px; position: relative; }
+  .arrow::before { content: ""; position: absolute; inset: 9px 0; background: repeating-linear-gradient(90deg, var(--red) 0 8px, transparent 8px 16px); animation: flow 1s linear infinite; }
+  .arrow::after { content: "♥"; position: absolute; left: -8px; top: -6px; color: var(--red); font-size: 26px; line-height: 1; animation: travel 1.4s ease-in-out infinite; }
+  @keyframes flow { to { background-position: 16px 0; } }
+  @keyframes travel { 0% { transform: translateX(0) scale(.7); opacity: 0; } 20% { opacity: 1; transform: translateX(12px) scale(1); } 80% { opacity: 1; transform: translateX(60px) scale(1); } 100% { transform: translateX(72px) scale(.7); opacity: 0; } }
+  .ui { background: var(--pink-soft); border: 3px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 10px; font-family: var(--font-cute); }
+  .ui .hdr { background: var(--red); color: var(--surface); padding: 8px 12px; border-radius: 8px; }
+  .ui .ctr { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface); border: 3px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+  .ui .ctr b { font-size: 24px; color: var(--red); font-variant-numeric: tabular-nums; font-weight: 400; }
+  .ui .btn { font-size: 15px; background: var(--sun); padding: 2px 12px; box-shadow: 3px 3px 0 var(--line); }
+  .flash { animation: flash .5s ease-out; }
+  @keyframes flash { 0% { background: var(--sun); } 100% { background: transparent; } }
+  #jsx-count { border-radius: 4px; padding: 0 2px; }
+
+  /* screens (slides 4 and 6) */
+  .run { font-size: 16px; padding: 10px 20px; background: var(--red); color: var(--surface); justify-self: start; }
+  .run:disabled { background: var(--pink); cursor: default; }
+  .screens { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+  .screen { background: var(--pink-soft); border: 3px solid var(--line); border-radius: 18px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+  .screen[data-mode="fiber"] { background: var(--mint-soft); }
+  .screen h3 { font-family: var(--font-poster); font-weight: 400; font-size: 20px; margin: 0; text-transform: uppercase; letter-spacing: .04em; }
+  .screen h3 b { color: var(--red); font-weight: 400; }
+  .screen h3 small { font: 400 14px var(--font-cute); text-transform: none; letter-spacing: 0; color: var(--muted); }
+  .screen .small { font-size: 14px; }
+  .stage { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; }
+  .stage .request { flex: 1 1 0; min-width: 0; }
+  .stage .counter { flex: 0 0 auto; }
+  .target { font-size: 17px; padding: 8px 18px; background: var(--sun); }
+  .target.frozen { cursor: wait; opacity: .55; transform: none; }
+  .target.pop { transform: translate(3px, 3px) scale(1.08); box-shadow: 1px 1px 0 var(--line); }
+  .counter { display: flex; gap: 14px; font-variant-numeric: tabular-nums; }
+  .counter div { text-align: center; min-width: 4.5em; }
+  .counter { flex-wrap: wrap; justify-content: flex-end; }
+  .counter b { display: block; font: 400 22px var(--font-cute); line-height: 1.3; letter-spacing: .04em; white-space: nowrap; }
+  .counter b.ok { color: #1f8f74; }
+  .counter b.stale { color: var(--bad); }
+  .counter b.none { color: var(--muted); opacity: .5; }
+  .counter small { font: 900 10px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .request { min-height: 1.5em; display: flex; align-items: center; font-size: 34px; line-height: 1; }
+  .request::before { content: ""; opacity: 0; }
+  .request.alert::before { content: "❗"; opacity: 1; animation: pop .6s ease-out; }
+  .request.waiting::before { content: "⏳"; opacity: 1; animation: pulse 1.2s ease-in-out infinite; }
+  .request.handled::before { content: "✨"; opacity: 1; animation: sparkle 1.6s ease-out forwards; }
+  @keyframes pop { 0% { transform: scale(.2); } 60% { transform: scale(1.4); } 100% { transform: scale(1); } }
+  @keyframes pulse { 50% { transform: scale(1.25) rotate(12deg); } }
+  @keyframes sparkle { 0% { transform: scale(.3) rotate(-30deg); opacity: 0; } 20% { transform: scale(1.5) rotate(10deg); opacity: 1; } 60% { transform: scale(1); opacity: 1; } 100% { transform: scale(.8); opacity: 0; } }
+  .status { font-size: 14px; line-height: 1.4; color: var(--muted); min-height: 2.8em; font-weight: 700; }
+  .timeline { display: flex; gap: 3px; height: 26px; align-items: stretch; overflow: hidden; border-radius: 999px; background: var(--surface); border: 3px solid var(--line); padding: 3px; }
+  .seg { border-radius: 999px; flex: 0 0 auto; }
+  .seg.work { background: var(--pink); width: 7px; }
+  .seg.yield { background: var(--mint); width: 9px; }
+  .seg.click { background: var(--red); width: 5px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line); vertical-align: -2px; margin-right: 6px; background: var(--sw); }
+
+
+  /* slide 4: tapping hand, flying star, blocked queue */
+  .screen { position: relative; }
+  .treewrap { position: relative; }
+  .queue { position: absolute; top: 0; right: 0; display: grid; justify-items: center; gap: 2px; font: 400 11px var(--font-cute); color: var(--red); }
+  .queue span { background: var(--surface); border: 2px dashed var(--red); border-radius: 8px; padding: 2px 8px; }
+  .queue em { display: block; width: 44px; height: 30px; border: 2px dashed var(--red); border-radius: 10px; background: var(--red-soft); }
+  .screen[data-auto] .stage, .screen[data-live] .stage { justify-content: flex-start; gap: 34px; padding-top: 30px; margin-top: 6px; }
+  .tapzone { position: relative; flex: 0 0 auto; }
+  .value { flex: 0 0 auto; text-align: center; min-width: 3.2em; }
+  .value b { display: block; font: 400 28px var(--font-cute); line-height: 1.1; color: var(--fg); transition: color .15s; }
+  .value b.stale { color: var(--bad); }
+  .value small { font: 900 10px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .screen[data-auto] .target { pointer-events: none; }
+  .hand { position: absolute; left: 50%; top: -46px; transform: translateX(-50%); font-size: 42px; line-height: 1; opacity: 0; pointer-events: none; z-index: 3; filter: drop-shadow(2px 3px 0 var(--line)); }
+  .hand.tap { animation: tap 3.6s ease-in-out; }
+  @keyframes tap { 0% { opacity: 0; transform: translate(-50%, -28px) scale(.8); } 22% { opacity: 1; transform: translate(-50%, 0) scale(1); } 38% { transform: translate(-50%, 0) scale(1); } 46% { transform: translate(-50%, 16px) scale(.92); } 58% { transform: translate(-50%, 0) scale(1); } 80% { opacity: 1; transform: translate(-50%, -4px) scale(1); } 100% { opacity: 0; transform: translate(-50%, -28px) scale(.8); } }
+  .zzz { position: absolute; right: -14px; top: -18px; font-size: 20px; opacity: 0; pointer-events: none; }
+  .zzz.on { opacity: 1; animation: zz 1.6s ease-in-out infinite; }
+  @keyframes zz { 50% { transform: translateY(-6px) rotate(10deg); } }
+  .star { position: absolute; left: 0; top: 0; font-size: 26px; line-height: 1; color: var(--red); pointer-events: none; z-index: 2; text-shadow: 2px 2px 0 var(--surface); }
+  .star.bob { animation: bob 1s ease-in-out infinite; }
+  .star.spin { animation: spin 1.2s linear infinite; }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+  @keyframes spin { to { rotate: 360deg; } }
+  .ripple { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; border: 4px solid var(--red); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; animation: ripple 1.8s ease-out forwards; }
+  @keyframes ripple { to { width: 130px; height: 130px; opacity: 0; } }
+
+  /* slide 5 */
+  .big { font-family: var(--font-poster); font-size: clamp(72px, 16vw, 140px); line-height: 1; color: var(--mint); text-shadow: 6px 6px 0 #1f8f74; }
+  .ver { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ver span { font: 600 14px var(--font-mono); padding: 6px 12px; border-radius: 999px; border: 3px solid var(--line); color: var(--muted); background: var(--surface); }
+  .ver span.ok { color: var(--fg); background: var(--mint); }
+  #walk { max-width: 560px; }
+  @media (prefers-reduced-motion: reduce) { .arrow::before, .arrow::after, .request::before, .star, .zzz, .hand { animation: none; } .node .face, .target { transition: none; } }
+</style>
+
+<main>
+  <div class="topbar"><b>React vDOM reconciliation</b><span id="pos">1 / 6</span></div>
+
+  <section class="slide" data-slide="1">
+    <span class="sticker">Drago's notes ♥</span>
+    <h1>React vDOM reconciliation: Stack (legacy) vs Fiber (React 16+)</h1>
+    <div class="stars">★ ★ ★</div>
+    <p class="muted">Arrow keys or the buttons below move between slides.</p>
+  </section>
+
+  <section class="slide" data-slide="2" hidden>
+    <h2>word: reconciliation (react) – convert my jsx into UI.</h2>
+    <div class="convert">
+<pre><span class="tag">&lt;App&gt;</span>
+  <span class="tag">&lt;Header</span> <span class="attr">title</span>="Shop" <span class="tag">/&gt;</span>
+  <span class="tag">&lt;Counter</span> <span class="attr">count</span>={<span id="jsx-count">3</span>} <span class="tag">/&gt;</span>
+<span class="tag">&lt;/App&gt;</span></pre>
+      <div class="arrow" aria-hidden="true"></div>
+      <div class="ui" aria-label="Rendered UI">
+        <div class="hdr">Shop</div>
+        <div class="ctr"><span>Count</span><b id="ui-count">3</b><button type="button" class="btn" id="ui-inc">+1</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-slide="3" hidden>
+    <h2>In order for React to convert my jsx → UI, it must walk the entire components tree.</h2>
+    <svg id="walk" viewBox="0 0 320 192" aria-label="React walking the component tree"></svg>
+    <p class="muted">Every little face is a component. React visits each one and asks "did you change?".</p>
+  </section>
+
+  <section class="slide" data-slide="4" hidden>
+    <h2>How? – 2 ways.</h2>
+    <div class="screens">
+      <div class="screen" data-mode="stack" data-auto="1">
+        <h3><b>Stack</b> <small>(legacy)</small></h3>
+        <p class="muted small">walk the entire tree at once and block additional re-renders in the meantime</p>
+        <div class="treewrap"><svg viewBox="0 0 320 156" aria-label="Component tree"></svg><div class="queue"><span>🚧 blocked</span><em></em></div></div>
+        <div class="stage"><div class="tapzone"><button class="target" type="button" tabindex="-1">+1</button><span class="hand">👇</span><span class="zzz">💤</span></div><span class="value"><b>0</b><small>count</small></span><span class="request"></span></div>
+        <div class="status">Idle.</div>
+        <div class="timeline"></div>
+      </div>
+      <div class="screen" data-mode="fiber" data-auto="1">
+        <h3><b>Fiber</b> <small>(new, React 16+)</small></h3>
+        <p class="muted small">scan a few components, let browser paint, let additional re-renders run, repeat</p>
+        <div class="treewrap"><svg viewBox="0 0 320 156" aria-label="Component tree"></svg></div>
+        <div class="stage"><div class="tapzone"><button class="target" type="button" tabindex="-1">+1</button><span class="hand">👇</span><span class="zzz">💤</span></div><span class="value"><b>0</b><small>count</small></span><span class="request"></span></div>
+        <div class="status">Idle.</div>
+        <div class="timeline"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span style="--sw: var(--pink)">React checking a component</span>
+      <span style="--sw: var(--mint)">Browser paints</span>
+      <span style="--sw: var(--red)">A re-render request handled</span>
+    </div>
+  </section>
+
+  <section class="slide" data-slide="5" hidden>
+    <h2>Practical: just use React 16+</h2>
+    <div class="big">16+</div>
+    <div class="ver"><span>15.6</span><span class="ok">16.0 ★</span><span class="ok">17 ★</span><span class="ok">18 ★</span><span class="ok">19 ★</span></div>
+    <p class="muted">Fiber shipped in React 16, so every current version already reconciles this way.</p>
+  </section>
+
+  <section class="slide" data-slide="6" hidden>
+    <h2>Example: Try to increase the counter while the Stack reconciler is running. <b>U can't. But you can increase the counter with the Fiber reconciler.</b></h2>
+    <button class="run" id="run" type="button">Run both reconcilers ★</button>
+    <div class="screens">
+      <div class="screen" data-mode="stack" data-live="1">
+        <h3><b>Stack</b> <small>(legacy)</small></h3>
+        <p class="muted small">walk the entire tree at once and block additional re-renders in the meantime</p>
+        <div class="treewrap"><svg viewBox="0 0 320 156" aria-label="Component tree"></svg><div class="queue"><span>🚧 blocked</span><em></em></div></div>
+        <div class="stage"><div class="tapzone"><button class="target" type="button">+1</button><span class="zzz">💤</span></div><span class="value"><b>0</b><small>count</small></span><span class="request"></span></div>
+        <div class="status">Idle.</div>
+        <div class="timeline"></div>
+      </div>
+      <div class="screen" data-mode="fiber" data-live="1">
+        <h3><b>Fiber</b> <small>(new, React 16+)</small></h3>
+        <p class="muted small">scan a few components, let browser paint, let additional re-renders run, repeat</p>
+        <div class="treewrap"><svg viewBox="0 0 320 156" aria-label="Component tree"></svg></div>
+        <div class="stage"><div class="tapzone"><button class="target" type="button">+1</button><span class="zzz">💤</span></div><span class="value"><b>0</b><small>count</small></span><span class="request"></span></div>
+        <div class="status">Idle.</div>
+        <div class="timeline"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span style="--sw: var(--pink)">React checking a component</span>
+      <span style="--sw: var(--mint)">Browser paints</span>
+      <span style="--sw: var(--red)">A re-render request handled</span>
+    </div>
+  </section>
+
+  <div class="nav">
+    <button type="button" id="prev">← Back</button>
+    <div class="dots" id="dots"></div>
+    <button type="button" id="next">Next →</button>
+  </div>
+</main>
+
+<script>
+  const NS = "http://www.w3.org/2000/svg";
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+  // Binary tree helper shared by the walk slide and the demo.
+  function buildTree(levels, top, rowGap) {
+    const starts = []; let acc = 0; levels.forEach(c => { starts.push(acc); acc += c; });
+    const nodes = []; let id = 0;
+    levels.forEach((count, depth) => {
+      for (let i = 0; i < count; i++) {
+        const gap = 320 / count;
+        nodes.push({ id: id++, x: gap * i + gap / 2, y: top + depth * rowGap, parent: depth ? starts[depth - 1] + Math.floor(i / 2) : null });
+      }
+    });
+    const order = [];
+    (function dfs(i) { order.push(i); nodes.filter(n => n.parent === i).forEach(n => dfs(n.id)); })(0);
+    return { nodes, order };
+  }
+  // Every node is a little face: idle looks calm, "doing" looks surprised, "done" smiles.
+  const MOUTH = {
+    idle: r => `M ${-r * .3} ${r * .35} h ${r * .6}`,
+    doing: r => `M ${-r * .22} ${r * .3} a ${r * .22} ${r * .22} 0 1 0 ${r * .44} 0 a ${r * .22} ${r * .22} 0 1 0 ${-r * .44} 0`,
+    done: r => `M ${-r * .38} ${r * .22} q ${r * .38} ${r * .45} ${r * .76} 0`,
+  };
+  function drawTree(svg, nodes, r) {
+    nodes.forEach(n => {
+      if (n.parent === null) return;
+      const p = nodes[n.parent];
+      svg.appendChild(el("line", { x1: p.x, y1: p.y, x2: n.x, y2: n.y, class: "edge" }));
+    });
+    return nodes.map(n => {
+      const g = el("g", { class: "node", transform: `translate(${n.x} ${n.y})` });
+      g.appendChild(el("circle", { r, class: "face" }));
+      g.appendChild(el("circle", { cx: -r * .4, cy: r * .15, r: r * .22, class: "blush" }));
+      g.appendChild(el("circle", { cx: r * .4, cy: r * .15, r: r * .22, class: "blush" }));
+      g.appendChild(el("circle", { cx: -r * .35, cy: -r * .15, r: r * .13, class: "eye" }));
+      g.appendChild(el("circle", { cx: r * .35, cy: -r * .15, r: r * .13, class: "eye" }));
+      const m = el("path", { d: MOUTH.idle(r), class: "mouth" }); g.appendChild(m);
+      g._mouth = m; g._r = r;
+      svg.appendChild(g); return g;
+    });
+  }
+  function setNode(g, state) {
+    g.setAttribute("class", "node" + (state === "idle" ? "" : " " + state));
+    g._mouth.setAttribute("d", MOUTH[state](g._r));
+  }
+
+  // ---- Slide 3: looping walk ----
+  const walkSvg = document.getElementById("walk");
+  const walkTree = buildTree([1, 2, 4, 8], 36, 44);
+  const walkNodes = drawTree(walkSvg, walkTree.nodes, 12);
+  ["App", "Header", "Main"].forEach((name, i) => {
+    const n = walkTree.nodes[i];
+    const t = el("text", { x: n.x, y: n.y - 17, class: "lbl" }); t.textContent = name; walkSvg.appendChild(t);
+  });
+  let walkTimer = null;
+  function startWalk() {
+    stopWalk(); let k = 0;
+    walkTimer = setInterval(() => {
+      if (k === 0) walkNodes.forEach(g => setNode(g, "idle"));
+      if (k < walkTree.order.length) {
+        setNode(walkNodes[walkTree.order[k]], "doing");
+        if (k > 0) setNode(walkNodes[walkTree.order[k - 1]], "done");
+      } else if (k === walkTree.order.length) {
+        setNode(walkNodes[walkTree.order[k - 1]], "done");
+      }
+      k = (k + 1) % (walkTree.order.length + 5);
+    }, 300);
+  }
+  function stopWalk() { if (walkTimer) clearInterval(walkTimer); walkTimer = null; }
+
+  function seg(tl, cls) { const s = document.createElement("div"); s.className = "seg " + cls; tl.appendChild(s); }
+
+  // ---- Slides 4 and 6: the reconciler screens ----
+  const demoTree = buildTree([1, 2, 4, 8, 16], 18, 40);
+  const smallTree = buildTree([1, 2, 4, 8], 16, 40);
+  const UNIT = 260, YIELD = 260, CHUNK = 3;
+  class Screen {
+    constructor(root) {
+      this.mode = root.dataset.mode; this.auto = !!root.dataset.auto; this.live = !!root.dataset.live;
+      this.visual = this.auto || this.live;
+      this.tree = this.visual ? smallTree : demoTree;
+      this.unit = this.auto ? 2100 : this.live ? 1000 : UNIT;
+      this.target = root.querySelector(".target"); this.request = root.querySelector(".request"); this.counter = root.querySelector(".counter");
+      this.status = root.querySelector(".status"); this.timeline = root.querySelector(".timeline");
+      this.nodes = drawTree(root.querySelector("svg"), this.tree.nodes, this.visual ? 11 : 8.5);
+      this.root = root; this.value = root.querySelector(".value"); this.hand = root.querySelector(".hand"); this.zzz = root.querySelector(".zzz"); this.queue = root.querySelector(".queue em"); this.svg = root.querySelector("svg");
+      this.stars = [];
+      this.pending = 0; this.clicks = 0; this.requested = 0; this.busy = false; this.stopped = false;
+      this.showCount();
+      if (this.target && !this.auto) this.target.addEventListener("click", () => this.live ? this.fire() : this.onClick());
+    }
+    showCount() {
+      if (this.value) { this.value.firstElementChild.textContent = this.clicks; this.value.firstElementChild.classList.toggle("stale", this.clicks < this.requested); }
+      if (!this.counter) return;
+      const blocked = this.requested - this.clicks;
+      const row = (n, cls) => n ? `<b class="${cls}">${"★".repeat(n)}</b>` : `<b class="none">–</b>`;
+      this.counter.innerHTML = `<div>${row(this.clicks, "ok")}<small>rendered</small></div><div>${row(blocked, "stale")}<small>blocked</small></div>`;
+    }
+    onClick() {
+      this.requested++; this.showCount();
+      if (!this.busy) { this.handle(); return; }
+      this.pending++;
+      if (this.visual) {
+        this.request.className = "request alert";
+        if (this.mode === "stack") setTimeout(() => { if (this.pending > 0) this.request.className = "request waiting"; }, 700);
+      }
+      if (this.mode === "stack") { if (this.target && !this.visual) this.target.classList.add("frozen"); this.status.textContent = (this.visual ? "Re-render request" : "Click") + " stuck in the queue until the whole tree is done…"; }
+    }
+    handle() {
+      this.clicks++; this.showCount(); seg(this.timeline, "click");
+      if (this.visual) { this.request.className = "request"; void this.request.offsetWidth; this.request.className = "request handled"; this.burst(); }
+      if (this.target) { this.target.classList.remove("frozen"); this.target.classList.add("pop"); setTimeout(() => this.target.classList.remove("pop"), 120); }
+    }
+    flush() { while (this.pending > 0) { this.pending--; this.handle(); } if (this.zzz) this.zzz.classList.remove("on"); }
+    // The visible event: a hand taps +1, a star flies off toward the tree (Fiber) or into the blocked box (Stack).
+    center(node) {
+      const a = node.getBoundingClientRect(), b = this.root.getBoundingClientRect();
+      return { x: a.left - b.left + a.width / 2, y: a.top - b.top + a.height / 2 };
+    }
+    async tap() {
+      this.hand.classList.remove("tap"); void this.hand.offsetWidth; this.hand.classList.add("tap");
+      await sleep(1640);
+      if (this.stopped) return;
+      this.fire();
+    }
+    async fire() {
+      const rip = document.createElement("span"); rip.className = "ripple"; this.target.parentElement.appendChild(rip); setTimeout(() => rip.remove(), 1800);
+      this.target.classList.add("pop"); setTimeout(() => this.target.classList.remove("pop"), 600);
+      const wasBusy = this.busy;
+      this.onClick();
+      if (!wasBusy) return; // idle screen: the click just renders, no star in flight
+      if (this.pending > 0) this.zzz.classList.add("on");
+      const star = document.createElement("span"); star.className = "star"; star.textContent = "★"; this.root.appendChild(star);
+      const from = this.center(this.target);
+      const to = this.mode === "stack" ? this.center(this.queue) : this.center(this.svg);
+      if (this.mode === "stack") to.x += (this.stars.length - 0.5) * 14;
+      star.style.left = (from.x - 13) + "px"; star.style.top = (from.y - 13) + "px";
+      this.stars.push(star);
+      const flight = star.animate([{ transform: "translate(0,0) scale(.6)" }, { transform: `translate(${(to.x - from.x) / 2}px, ${to.y - from.y - 60}px) scale(1.3)` }, { transform: `translate(${to.x - from.x}px, ${to.y - from.y}px) scale(1)` }], { duration: 900, easing: "ease-in-out" });
+      await flight.finished.catch(() => {});
+      if (this.stopped) { star.remove(); return; }
+      // Park the star at its destination with plain positioning, so the idle animation has a clean base.
+      star.style.left = (to.x - 13) + "px"; star.style.top = (to.y - 13) + "px";
+      star.classList.add(this.mode === "stack" ? "bob" : "spin");
+    }
+    burst() {
+      const star = this.stars.shift(); if (!star) return;
+      star.classList.remove("bob", "spin");
+      star.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(2.4) rotate(40deg)", opacity: 0 }], { duration: 450, easing: "ease-out", fill: "forwards" }).finished.then(() => star.remove(), () => star.remove());
+    }
+    clearStars() { this.stars.forEach(st => st.remove()); this.stars = []; }
+    reset() {
+      this.busy = false; this.pending = 0;
+      this.nodes.forEach(g => setNode(g, "idle"));
+      this.timeline.innerHTML = "";
+      if (this.visual) {
+        this.clicks = 0; this.requested = 0; this.showCount();
+        this.request.className = "request"; this.clearStars();
+        this.zzz.classList.remove("on"); if (this.hand) this.hand.classList.remove("tap");
+        this.root.querySelectorAll(".ripple").forEach(r => r.remove());
+        this.target.classList.remove("pop", "frozen");
+        this.status.textContent = "Idle.";
+      }
+    }
+    alive(gen) { return gen === undefined || gen === waysGen; }
+    async run(gen) {
+      this.nodes.forEach(g => setNode(g, "idle"));
+      this.timeline.innerHTML = ""; this.pending = 0; this.busy = true;
+      if (this.visual) { this.clicks = 0; this.requested = 0; this.showCount(); this.request.className = "request"; this.clearStars(); this.zzz && this.zzz.classList.remove("on"); }
+      this.status.textContent = this.mode === "stack" ? "Walking the whole tree in one go. Everything else is blocked." : "Scanning a few components, then letting the browser go.";
+      const order = this.tree.order;
+      for (let k = 0; k < order.length; k++) {
+        if (this.stopped || !this.alive(gen)) return;
+        const g = this.nodes[order[k]];
+        setNode(g, "doing"); seg(this.timeline, "work");
+        await sleep(this.unit);
+        if (this.stopped || !this.alive(gen)) return;
+        setNode(g, "done");
+        if (this.mode === "fiber" && (k + 1) % CHUNK === 0 && k < order.length - 1) {
+          seg(this.timeline, "yield");
+          this.status.textContent = this.pending ? "Pausing. Running the re-render right now." : "Pausing so the browser can paint.";
+          this.flush();
+          await sleep(this.auto ? this.unit : YIELD);
+          if (this.stopped || !this.alive(gen)) return;
+          this.status.textContent = "Back to scanning.";
+        }
+      }
+      this.busy = false;
+      this.status.textContent = this.mode === "stack" ? (this.pending ? "Done. Only now do the re-renders run." : "Done.") : "Done, and nothing ever froze.";
+      this.flush();
+    }
+  }
+  const allScreens = [...document.querySelectorAll(".screen")].map(r => new Screen(r));
+  const screens = allScreens.filter(s => !s.auto), autoScreens = allScreens.filter(s => s.auto);
+  // Every visit to the slide starts a fresh generation; anything from an older generation stops itself.
+  let waysGen = 0, waysTimers = [];
+  async function startWays() {
+    const gen = ++waysGen;
+    autoScreens.forEach(s => { s.stopped = false; s.reset(); });
+    while (gen === waysGen) {
+      // Both screens get the same two requests at the same moments, so the only difference is how each reconciler treats them.
+      waysTimers = [2.3, 9.3].map(t => setTimeout(() => { if (gen === waysGen) autoScreens.forEach(s => { if (s.busy) s.tap(); }); }, t * autoScreens[0].unit));
+      await Promise.all(autoScreens.map(s => s.run(gen)));
+      if (gen !== waysGen) break;
+      await sleep(6000);
+    }
+  }
+  function stopWays() {
+    waysGen++; waysTimers.forEach(clearTimeout); waysTimers = [];
+    autoScreens.forEach(s => { s.stopped = true; s.reset(); });
+  }
+
+  // ---- Slide 2: live counter ----
+  let liveCount = 3;
+  document.getElementById("ui-inc").addEventListener("click", () => {
+    liveCount++;
+    const j = document.getElementById("jsx-count"), u = document.getElementById("ui-count");
+    j.textContent = liveCount; u.textContent = liveCount;
+    [j, u].forEach(x => { x.classList.remove("flash"); void x.offsetWidth; x.classList.add("flash"); });
+  });
+  const runBtn = document.getElementById("run");
+  runBtn.addEventListener("click", async () => {
+    runBtn.disabled = true; runBtn.textContent = "Running… press +1 on both!";
+    screens.forEach(s => { s.stopped = false; });
+    await Promise.all(screens.map(s => s.run()));
+    if (screens.some(s => s.stopped)) return;
+    runBtn.disabled = false; runBtn.textContent = "Run again ★";
+  });
+
+  // ---- Deck ----
+  const slides = [...document.querySelectorAll(".slide")];
+  const dots = document.getElementById("dots");
+  slides.forEach(() => dots.appendChild(document.createElement("i")));
+  let cur = 0;
+  function stopDemo() { screens.forEach(s => { s.stopped = true; s.reset(); }); runBtn.disabled = false; runBtn.textContent = "Run both reconcilers ★"; }
+  const hooks = { 2: [startWalk, stopWalk], 3: [startWays, stopWays], 5: [() => {}, stopDemo] };
+  function show(i) {
+    if (hooks[cur]) hooks[cur][1]();
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, k) => { s.hidden = k !== cur; });
+    [...dots.children].forEach((d, k) => d.classList.toggle("on", k === cur));
+    document.getElementById("pos").textContent = `${cur + 1} / ${slides.length}`;
+    document.getElementById("prev").disabled = cur === 0;
+    document.getElementById("next").disabled = cur === slides.length - 1;
+    if (hooks[cur]) hooks[cur][0]();
+    window.scrollTo({ top: 0 });
+  }
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1));
+  document.getElementById("next").addEventListener("click", () => show(cur + 1));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); show(cur + 1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); show(cur - 1); }
+  });
+  show(0);
+</script>
+
+</body></html>
