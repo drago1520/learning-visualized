@@ -85,10 +85,12 @@ button.on{border-color:var(--border-accent);color:var(--text-accent);background:
 
 <div class="wrap">
 <h1 class="ttl">Covering indexes</h1>
-<p class="intro">An index covers a query when it already stores every column the query asks for. Then the answer comes straight from the index, and the primary data storage lookup is skipped.</p>
+<p class="intro">Covering indexes hold the entire primary data required to answer the whole query, inside the index itself. In other words, they “cover” the whole query. From the search, to the data retrieval.
+</p>
+<p>They drastically improve perf by embedding the data required to answer the query inside the index itself, skipping the primary data storage lookup like PK index in InnoDB or PG heap.</p>
 <p class="sr-only">A 3D stack with an index on email on top and the users table below. Pick which columns the index stores and which columns the query asks for, and the stack shows whether the table has to be read.</p>
 
-<div class="ctl">
+<div class="ctl" style="margin-top: 80px;">
   <span class="k">Index</span>
   <div class="opts">
     <button class="ix mono" data-ix="s" id="ix-s">(email)</button>
